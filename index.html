@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrovia - "Frota" - Gestão de Custo de Frota & DRE Analítica</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f1e17;
+            --card-bg: #162c22;
+            --border-color: rgba(46, 204, 113, 0.25);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-purple: #a3e635;
+            --accent-pink: #2ecc71;
+            --accent-green: #34d399;
+            --accent-yellow: #fbbf24;
+            --accent-orange: #fb923c;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .dashboard-container { max-width: 1400px; margin: 0 auto; flex: 1; width: 100%; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
+        
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--card-bg); padding: 20px; border-radius: 12px;
+            border: 1px solid var(--border-color); flex-wrap: wrap; gap: 15px; box-sizing: border-box;
+        }
+        header h1 {
+            margin: 0; font-size: 20px; color: var(--text-primary);
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        header p { margin: 5px 0 0 0; font-size: 12px; color: var(--text-secondary); }
+        .author-signature { font-size: 11px; color: var(--accent-purple); opacity: 0.9; margin-top: 4px; letter-spacing: 0.3px; font-weight: 600; }
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .toggle-btn, .table-toggle-btn {
+            background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--accent-blue); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px;
+            transition: all 0.2s;
+        }
+        .table-toggle-btn { background: rgba(163, 230, 53, 0.15); border-color: rgba(163, 230, 53, 0.4); color: var(--accent-purple); }
+        .toggle-btn.active, .toggle-btn:hover { background: var(--accent-blue); color: #0f1e17; }
+        .table-toggle-btn:hover { background: var(--accent-purple); color: #0f1e17; }
+        
+        #defaultDashboardContent { display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; }
+        #defaultDashboardContent.hidden-content { display: none !important; }
+
+        .grid-container { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; }
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); box-sizing: border-box; }
+        
+        .kpi-card { grid-column: span 2; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+        @media (max-width: 1200px) { .kpi-card { grid-column: span 4; } }
+        body.mobile-mode .kpi-card { grid-column: span 6 !important; }
+        body.mobile-mode .chart-main, body.mobile-mode .chart-side { grid-column: span 12 !important; }
+
+        .kpi-card::after { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+        .kpi-blue::after { background: var(--accent-blue); }
+        .kpi-pink::after { background: var(--accent-pink); }
+        .kpi-purple::after { background: var(--accent-purple); }
+        .kpi-green::after { background: var(--accent-green); }
+        .kpi-yellow::after { background: var(--accent-yellow); }
+        .kpi-orange::after { background: var(--accent-orange); }
+
+        .kpi-title { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+        .kpi-value { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-top: 8px; }
+        
+        .chart-main { grid-column: span 8; }
+        .chart-side { grid-column: span 4; }
+        .chart-container { position: relative; height: 280px; width: 100%; }
+        .card-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary); }
+
+        .table-section { width: 100%; display: none; box-sizing: border-box; }
+        .table-section.visible { display: block; }
+        .dre-container { width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); box-sizing: border-box; }
+        .dre-header-title { font-size: 16px; font-weight: 700; color: var(--accent-purple); margin-bottom: 15px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        .dre-title-row { display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px; }
+
+        .filter-container { display: flex; flex-direction: column; gap: 8px; background: rgba(10, 23, 17, 0.9); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; box-sizing: border-box; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-secondary); font-weight: 600; flex-wrap: wrap; gap: 10px; }
+        .filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
+        .month-chip { display: flex; align-items: center; gap: 6px; background: rgba(46, 204, 113, 0.1); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; font-size: 11px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; }
+        .month-chip:hover { background: rgba(46, 204, 113, 0.2); }
+        .month-chip input { accent-color: var(--accent-purple); cursor: pointer; }
+        .filter-actions { font-size: 11px; color: var(--accent-blue); cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .filter-actions:hover { color: var(--accent-purple); }
+
+        table.dre-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        table.dre-table th, table.dre-table td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
+        table.dre-table th { background-color: rgba(19, 44, 34, 0.95); color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        table.dre-table tr:hover { background-color: rgba(46, 204, 113, 0.05); }
+        
+        .row-group { font-weight: 700; background-color: rgba(27, 77, 62, 0.4); color: var(--text-primary); cursor: pointer; }
+        .row-group:hover { background-color: rgba(27, 77, 62, 0.7); }
+        .row-sub { display: none; background-color: rgba(19, 44, 34, 0.6); cursor: pointer; }
+        .row-sub.open { display: table-row; }
+        .row-sub:hover { background-color: rgba(46, 204, 113, 0.1); }
+        .row-detail { display: none; background-color: rgba(10, 23, 17, 0.95); font-size: 12px; color: var(--text-secondary); }
+        .row-detail.open { display: table-row; }
+        .row-total { font-weight: 800; background-color: rgba(163, 230, 53, 0.1); color: var(--accent-purple); border-top: 2px solid var(--accent-purple); }
+        .text-right { text-align: right; }
+        .badge-cat { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .badge-sub { background: rgba(163, 230, 53, 0.15); color: var(--accent-purple); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+
+        footer {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+            gap: 15px;
+            box-sizing: border-box;
+        }
+        .footer-left { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; }
+        .footer-left span { color: var(--accent-purple); font-weight: 700; }
+        .footer-right {
+            display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-secondary);
+            background: rgba(10, 23, 17, 0.5); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body id="bodyTag">
+<div class="dashboard-container">
+    <header>
+        <div>
+            <h1>Agrovia - "Frota" - Gestão de Custo de Frota</h1>
+            <p>Atualizado em: 01/10/2026 às 14:27 | DRE Gerencial & Auditoria ERP</p>
+            <div class="author-signature">Autor do Relatório: Samuel Oliveira Silva</div>
+        </div>
+        <div class="header-actions">
+            <button id="btnAuditorToggle" class="table-toggle-btn" onclick="toggleAuditorVersion()">📋 Ver Tabela Analítica</button>
+            <div class="view-toggle-btns">
+                <button class="toggle-btn active" onclick="setViewMode('pc', this)">🖥 Visão PC</button>
+                <button class="toggle-btn" onclick="setViewMode('mobile', this)">📱 Visão Mobile</button>
+            </div>
+        </div>
+    </header>
+
+    <div id="defaultDashboardContent">
+        <div class="grid-container">
+            <div class="card kpi-card kpi-blue"><span class="kpi-title">Receita Bruta Total</span><div class="kpi-value kpi-receita-bruta">R$ 23.215,31</div></div>
+            <div class="card kpi-card kpi-pink"><span class="kpi-title">Custo Total da Frota</span><div class="kpi-value kpi-custo-total">R$ 97.680,84</div></div>
+            <div class="card kpi-card kpi-purple"><span class="kpi-title">Resultado Líquido</span><div class="kpi-value kpi-resultado-liquido">R$ -74.465,53</div></div>
+            <div class="card kpi-card kpi-green"><span class="kpi-title">Margem Líquida</span><div class="kpi-value kpi-margem-liquida">-320.76%</div></div>
+            <div class="card kpi-card kpi-yellow"><span class="kpi-title">CPK (Custo / KM)</span><div class="kpi-value kpi-cpk">R$ 1,88</div></div>
+            <div class="card kpi-card kpi-orange"><span class="kpi-title">Consumo Médio (Km/L)</span><div class="kpi-value kpi-consumo">1.41 Km/L</div></div>
+
+            <div class="card chart-main"><div class="card-title">Evolução Mensal: Receitas vs Custos da Frota</div><div class="chart-container"><canvas id="mainEvolutionChart"></canvas></div></div>
+            <div class="card chart-side"><div class="card-title">Composição de Custos (Frota)</div><div class="chart-container"><canvas id="categoryPieChart"></canvas></div></div>
+        </div>
+    </div>
+
+    <div id="analyticsTableCard" class="table-section">
+        <div class="dre-container">
+            <div class="dre-header-title">
+                <div class="dre-title-row">
+                    <span><i class="fa-solid fa-file-invoice-dollar"></i> DRE Analítica Frota - 2026</span>
+                    <span style="font-size: 12px; color: var(--text-secondary);">Seleção Múltipla Dinâmica</span>
+                </div>
+                <div class="filter-container">
+                    <div class="filter-header">
+                        <span><i class="fa-solid fa-filter" style="color: var(--accent-blue);"></i> Filtrar por Mês (Selecione um ou mais):</span>
+                        <div>
+                            <span class="filter-actions" onclick="selecionarTodosMeses(true)">Marcar Todos</span> | 
+                            <span class="filter-actions" onclick="selecionarTodosMeses(false)">Desmarcar Todos</span>
+                        </div>
+                    </div>
+                    <div class="filter-options">
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="01" checked onchange="filtrarTabelaPorMeses()"> Janeiro</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="02" checked onchange="filtrarTabelaPorMeses()"> Fevereiro</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="03" checked onchange="filtrarTabelaPorMeses()"> Março</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="04" checked onchange="filtrarTabelaPorMeses()"> Abril</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="05" checked onchange="filtrarTabelaPorMeses()"> Maio</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="06" checked onchange="filtrarTabelaPorMeses()"> Junho</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="07" checked onchange="filtrarTabelaPorMeses()"> Julho</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="08" checked onchange="filtrarTabelaPorMeses()"> Agosto</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="09" checked onchange="filtrarTabelaPorMeses()"> Setembro</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="max-height: 550px; overflow-y: auto;">
+                <table class="dre-table">
+                    <thead>
+                        <tr>
+                            <th>Estrutura da DRE / Histórico (Data e Parceiro)</th>
+                            <th>Natureza / Classificação</th>
+                            <th class="text-right">Valor Consolidado (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- BLOCO 1: RECEITA -->
+                        <tr class="row-group" onclick="toggleRow('sub-receita')">
+                            <td><i class="fa-solid fa-chevron-right" id="icon-sub-receita"></i> (+) RECEITA OPERACIONAL BRUTA</td>
+                            <td><span class="badge-cat">Faturamento</span></td>
+                            <td class="text-right val-receita-total" style="color: var(--accent-blue);">R$ 23.215,31</td>
+                        </tr>
+                        <tr class="row-sub sub-receita" onclick="toggleRow('detail-frete')">
+                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Prestação de Serviços de Transporte</td>
+                            <td><span class="badge-sub">Receita de Frete</span></td>
+                            <td class="text-right val-receita-sub">R$ 23.215,31</td>
+                        </tr>
+                        <tr class="row-detail detail-frete" data-mes="04" data-valor="10600.73">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 10600.73 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>FAT - 6946405 ( desconto de R$199,27 )</strong>
+                            </td>
+                            <td><span class="badge-sub">Frete / Operação</span></td>
+                            <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 10.600,73</td>
+                        </tr>
+                        <tr class="row-detail detail-frete" data-mes="04" data-valor="10834.58">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 10834.58 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>FAT - 6946405 ( desconto de R$205,42 )</strong>
+                            </td>
+                            <td><span class="badge-sub">Frete / Operação</span></td>
+                            <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 10.834,58</td>
+                        </tr>
+                        <tr class="row-detail detail-frete" data-mes="01" data-valor="890.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>28/01/2026</strong> • N° 890.0 • Placa: <strong>[XYZ]</strong> • <strong>DEVOLUÇÃO DE ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI  ( comissão viagem - cvt pagar - cliente mineradora )</strong>
+                            </td>
+                            <td><span class="badge-sub">Frete / Operação</span></td>
+                            <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 890,00</td>
+                        </tr>
+                        <tr class="row-detail detail-frete" data-mes="02" data-valor="890.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/02/2026</strong> • N° 890.0 • Placa: <strong>[XYZ]</strong> • <strong>TESOU - REEMBOLSO FRETE DA CVT FEITO PELO MOTORISTA PEDRO HENRIQUE MORALI DE PEÇAS PARA BRITASUL PAGA PELA AGROVIA EM 23/01/266</strong>
+                            </td>
+                            <td><span class="badge-sub">Frete / Operação</span></td>
+                            <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 890,00</td>
+                        </tr>
+                        <!-- BLOCO 2: DEDUÇÕES -->
+                        <tr class="row-group" onclick="toggleRow('sub-deducoes')">
+                            <td><i class="fa-solid fa-chevron-right"></i> (-) DEDUÇÕES DA RECEITA BRUTA</td>
+                            <td><span class="badge-cat">Impostos / Retenções</span></td>
+                            <td class="text-right" style="color: var(--accent-orange);">-R$ 0,00</td>
+                        </tr>
+                        <tr class="row-sub sub-deducoes">
+                            <td style="padding-left: 30px;">• Sem deduções registradas no período</td>
+                            <td><span class="badge-sub">Impostos</span></td>
+                            <td class="text-right">R$ 0,00</td>
+                        </tr>
+
+                        <!-- BLOCO 3: RECEITA LÍQUIDA -->
+                        <tr class="row-total">
+                            <td>(=) RECEITA OPERACIONAL LÍQUIDA</td>
+                            <td>Receita Efetiva</td>
+                            <td class="text-right val-rec-liquida">R$ 23.215,31</td>
+                        </tr>
+
+                        <!-- BLOCO 4: CUSTOS OPERACIONAIS -->
+                        <tr class="row-group" onclick="toggleRow('sub-custos')">
+                            <td><i class="fa-solid fa-chevron-right"></i> (-) CUSTOS OPERACIONAIS DA FROTA</td>
+                            <td><span class="badge-cat">Custos Diretos</span></td>
+                            <td class="text-right val-custos-total" style="color: #f87171;">-R$ 97.680,84</td>
+                        </tr>
+                        <tr class="row-sub sub-custos" onclick="toggleRow('detail-diesel')">
+                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Combustível (Diesel)</td>
+                            <td><span class="badge-sub">Combustível</span></td>
+                            <td class="text-right val-sub-diesel">R$ 11.983,08</td>
+                        </tr>
+                        <tr class="row-detail detail-diesel" data-mes="01" data-valor="1133.71">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>21/01/2026</strong> • N° -1133.71 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - ARLA E DIESEL S10 - PEDRO HENRIQUE - PAG. FEITO NA HORA DO ABASTECIMENTO A VISTA , PEDRINHO LIGOU</strong>
+                            </td>
+                            <td><span class="badge-sub">COMBUSTIVEL E LUBRIFICANTES CUSTO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.133,71</td>
+                        </tr>
+                        <tr class="row-detail detail-diesel" data-mes="02" data-valor="2923.8">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>09/02/2026</strong> • N° -2923.8 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - OLEO DIESEL E ARLA - PEDRO HENRIQUE</strong>
+                            </td>
+                            <td><span class="badge-sub">COMBUSTIVEL E LUBRIFICANTES CUSTO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 2.923,80</td>
+                        </tr>
+                        <tr class="row-detail detail-diesel" data-mes="01" data-valor="2969.41">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>22/01/2026</strong> • N° -2969.41 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - OLEO DIESEL S10 - PEDRO HENRIQUE</strong>
+                            </td>
+                            <td><span class="badge-sub">COMBUSTIVEL E LUBRIFICANTES CUSTO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 2.969,41</td>
+                        </tr>
+                        <tr class="row-detail detail-diesel" data-mes="02" data-valor="4956.16">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>09/02/2026</strong> • N° -4956.16 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - OLEO DIESEL S10 E ARLA - PEDRO HENRIQUE</strong>
+                            </td>
+                            <td><span class="badge-sub">COMBUSTIVEL E LUBRIFICANTES CUSTO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.956,16</td>
+                        </tr>
+                        <tr class="row-sub sub-custos" onclick="toggleRow('detail-manut')">
+                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Manutenção</td>
+                            <td><span class="badge-sub">Manutenção</span></td>
+                            <td class="text-right val-sub-manut">R$ 10.736,84</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="02" data-valor="1440.8">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° -1440.8 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - COMPRA DE GRAMPO MOLA , PORCA , AMORTECEDOR DIANTEIRO E BUCHA MOLA - GUILHERME DA CVT RETIROU</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.440,80</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="02" data-valor="224.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° -224.0 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - COMPRA DE BUCHA MOLA DIANTEIRA - GUILHERME DA CVT RETIROU</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 224,00</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="01" data-valor="160.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>19/01/2026</strong> • N° -160.0 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - COMPRA DE BUCHA P/ CAMINHÃO - ANDERSON AUTORIZOU COMPRA</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 160,00</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="01" data-valor="5193.64">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/01/2026</strong> • N° -5193.64 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - COMPRA DE PEÇAS P/ CAMINHÃO - CLAUDINEI SOLICITOU PAGAMENTO</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 5.193,64</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="01" data-valor="960.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>19/01/2026</strong> • N° -960.0 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - RECAUCHUTAGEM / REGENERAÇÃO DE PNEUS - ANDERSON AUTORIZOU PAGAMENTO</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 960,00</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="01" data-valor="89.9">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/01/2026</strong> • N° -89.9 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - MENSALIDADE - SISTEMA DE BLOQUEIO - CAMINHÃO - LINCENCA USO MENSAL IMOBILIZADOR 4G</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 89,90</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="01" data-valor="890.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>28/01/2026</strong> • N° -890.0 • Placa: <strong>[XYZ]</strong> • <strong>TESOU - FRETE DA CVT FEITO PELO MOTORISTA PEDRO HENRIQUE MORALI DE PEÇAS PARA BRITASUL PAGA PELA AGROVIA</strong>
+                            </td>
+                            <td><span class="badge-sub">FRETES ADM</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 890,00</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="02" data-valor="80.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° -80.0 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - COMPRA DE OLEO P/ CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 80,00</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="02" data-valor="320.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° -320.0 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - COMPRA DE OLEO P/ CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 320,00</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="02" data-valor="1200.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° -1200.0 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - COMPRA DE FILTRO E OLEO P/ CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.200,00</td>
+                        </tr>
+                        <tr class="row-detail detail-manut" data-mes="02" data-valor="178.5">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° -178.5 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - COMPRA DE JUNTA TAMPA VALVULA P/ CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 178,50</td>
+                        </tr>
+                        <tr class="row-sub sub-custos" onclick="toggleRow('detail-pedagio')">
+                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Pedágio</td>
+                            <td><span class="badge-sub">Pedágio</span></td>
+                            <td class="text-right val-sub-pedagio">R$ 2.817,47</td>
+                        </tr>
+                        <tr class="row-detail detail-pedagio" data-mes="01" data-valor="2694.36">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/01/2026</strong> • N° -2694.36 • Placa: <strong>[XYZ]</strong> • <strong>OOM9749 - PEDAGIO - DEZEMBRO/2025</strong>
+                            </td>
+                            <td><span class="badge-sub">PEDAGIO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 2.694,36</td>
+                        </tr>
+                        <tr class="row-detail detail-pedagio" data-mes="01" data-valor="63.32">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/01/2026</strong> • N° -63.32 • Placa: <strong>[XYZ]</strong> • <strong>QAS6E40 - PEDAGIO - DEZEMBRO/2025</strong>
+                            </td>
+                            <td><span class="badge-sub">PEDAGIO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 63,32</td>
+                        </tr>
+                        <tr class="row-detail detail-pedagio" data-mes="01" data-valor="59.79">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/01/2026</strong> • N° -59.79 • Placa: <strong>[XYZ]</strong> • <strong>PZW6A02 - PEDAGIO - DEZEMBRO/2025</strong>
+                            </td>
+                            <td><span class="badge-sub">PEDAGIO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 59,79</td>
+                        </tr>
+                        <tr class="row-sub sub-custos" onclick="toggleRow('detail-seguros')">
+                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Seguros</td>
+                            <td><span class="badge-sub">Seguros</span></td>
+                            <td class="text-right val-sub-seguros">R$ 42.056,19</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="08" data-valor="4672.91">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/08/2026</strong> • N° -4672.91 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 28/01/2026 - FINAL VIGENCIA 28/01/2027 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="07" data-valor="4672.91">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/07/2026</strong> • N° -4672.91 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 28/01/2026 - FINAL VIGENCIA 28/01/2027 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="05" data-valor="4672.91">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/05/2026</strong> • N° -4672.91 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 28/01/2026 - FINAL VIGENCIA 28/01/2027 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="10" data-valor="4672.91">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/10/2026</strong> • N° -4672.91 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 28/01/2026 - FINAL VIGENCIA 28/01/2027 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="09" data-valor="4672.91">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/09/2026</strong> • N° -4672.91 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 28/01/2026 - FINAL VIGENCIA 28/01/2027 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="02" data-valor="4672.95">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>04/02/2026</strong> • N° -4672.95 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 27/01/2026 - FINAL VIGENCIA 26/02/2026 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,95</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="07" data-valor="4672.91">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/07/2026</strong> • N° -4672.91 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 28/01/2026 - FINAL VIGENCIA 28/01/2027 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="04" data-valor="4672.91">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/04/2026</strong> • N° -4672.91 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 27/01/2026 - FINAL VIGENCIA 26/02/2026 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                        </tr>
+                        <tr class="row-detail detail-seguros" data-mes="03" data-valor="4672.87">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/03/2026</strong> • N° -4672.87 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - SEGURO CAMINHAO - INICIO VIGENCIA 27/01/2026 - FINAL VIGENCIA 26/02/2026 - PROPOSTA/Nº APOLICE A839295397</strong>
+                            </td>
+                            <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,87</td>
+                        </tr>
+                        <tr class="row-sub sub-custos" onclick="toggleRow('detail-encargos')">
+                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • IPVA / Lic. / Multas</td>
+                            <td><span class="badge-sub">Encargos / Leis</span></td>
+                            <td class="text-right val-sub-encargos">R$ 11.542,08</td>
+                        </tr>
+                        <tr class="row-detail detail-encargos" data-mes="01" data-valor="706.74">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>26/01/2026</strong> • N° -706.74 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>MULTA RENAINF - CAVALO OOM9749 - CAMINHAO / OOM9749 - GUIA Nº 12630881972</strong>
+                            </td>
+                            <td><span class="badge-sub">MULTAS DE TRÂNSITO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 706,74</td>
+                        </tr>
+                        <tr class="row-detail detail-encargos" data-mes="01" data-valor="1059.31">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>30/01/2026</strong> • N° -1059.31 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>OOM9749 - PARCELAMENTO IPVA 2026 - CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.059,31</td>
+                        </tr>
+                        <tr class="row-detail detail-encargos" data-mes="03" data-valor="1108.76">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/03/2026</strong> • N° -1108.76 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>PARC. 02/05 - OOM9749 - PARCELAMENTO IPVA 2026 - CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.108,76</td>
+                        </tr>
+                        <tr class="row-detail detail-encargos" data-mes="03" data-valor="1059.29">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/03/2026</strong> • N° -1059.29 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>PARC. 03/05 - OOM9749 - PARCELAMENTO IPVA 2026 - CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.059,29</td>
+                        </tr>
+                        <tr class="row-detail detail-encargos" data-mes="05" data-valor="1059.29">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>29/05/2026</strong> • N° -1059.29 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>PARC. 05/05 - OOM9749 - PARCELAMENTO IPVA 2026 - CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.059,29</td>
+                        </tr>
+                        <tr class="row-detail detail-encargos" data-mes="04" data-valor="1059.29">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>30/04/2026</strong> • N° -1059.29 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>PARC. 04/05 - OOM9749 - PARCELAMENTO IPVA 2026 - CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.059,29</td>
+                        </tr>
+                        <tr class="row-detail detail-encargos" data-mes="01" data-valor="5489.4">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/01/2027</strong> • N° -5489.4 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>SAMUEL - PROVISÃO - OOM9749 - LICENCIAMENTO / IPVA 2026 - CAMINHÃO</strong>
+                            </td>
+                            <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 5.489,40</td>
+                        </tr>
+                        <tr class="row-sub sub-custos" onclick="toggleRow('detail-outros')">
+                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Outros Custos</td>
+                            <td><span class="badge-sub">Outros</span></td>
+                            <td class="text-right val-sub-outros">R$ 18.545,18</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="01" data-valor="890.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>23/01/2026</strong> • N° -890.0 • Placa: <strong>[XYZ]</strong> • <strong>ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI ( comissão viagem - cvt pagar - cliente mineradora )</strong>
+                            </td>
+                            <td><span class="badge-sub">ADIANTAMENTO SALARIAL -CUSTO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 890,00</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="01" data-valor="3500.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/01/2026</strong> • N° -3500.0 • Placa: <strong>[XYZ]</strong> • <strong>ARRENDAMENTO DE VEICULOS (CONJUNTO CAMINHAO)
+QAB-1877, QAB-1878, QAB-1879 Par. 01/12</strong>
+                            </td>
+                            <td><span class="badge-sub">LOCACAO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 3.500,00</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="03" data-valor="3500.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/03/2026</strong> • N° -3500.0 • Placa: <strong>[XYZ]</strong> • <strong>ARRENDAMENTO DE VEICULOS (CONJUNTO CAMINHAO)
+QAB-1877, QAB-1878, QAB-1879 Par. 03/12</strong>
+                            </td>
+                            <td><span class="badge-sub">LOCACAO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 3.500,00</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="02" data-valor="284.5">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/02/2026</strong> • N° -284.5 • Placa: <strong>[XYZ]</strong> • <strong>PARC. 01/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/ AELIETE - COMPRA FEITA NO CARTÃO DE CRÉDITO - NF EM NOME DO GILSON</strong>
+                            </td>
+                            <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="07" data-valor="284.5">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/07/2026</strong> • N° -284.5 • Placa: <strong>[XYZ]</strong> • <strong>PARC. 06/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/ AELIETE - COMPRA FEITA NO CARTÃO DE CRÉDITO - NF EM NOME DO GILSON</strong>
+                            </td>
+                            <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="04" data-valor="284.5">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/04/2026</strong> • N° -284.5 • Placa: <strong>[XYZ]</strong> • <strong>PARC. 03/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/ AELIETE - COMPRA FEITA NO CARTÃO DE CRÉDITO - NF EM NOME DO GILSON</strong>
+                            </td>
+                            <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="10" data-valor="98.9">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/10/2026</strong> • N° -98.9 • Placa: <strong>M.BENZ/ACTROS 2651S6X4[OOM9749]</strong> • <strong>PREVISÃO - OOM9749 - MENSALIDADE - SISTEMA DE BLOQUEIO - CAMINHÃO - LINCENCA USO MENSAL IMOBILIZADOR 4G</strong>
+                            </td>
+                            <td><span class="badge-sub">SERVICO MONITORAMENTO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 98,90</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="03" data-valor="284.5">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/03/2026</strong> • N° -284.5 • Placa: <strong>[XYZ]</strong> • <strong>PARC. 02/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/ AELIETE - COMPRA FEITA NO CARTÃO DE CRÉDITO - NF EM NOME DO GILSON</strong>
+                            </td>
+                            <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="06" data-valor="284.5">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/06/2026</strong> • N° -284.5 • Placa: <strong>[XYZ]</strong> • <strong>PARC. 05/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/ AELIETE - COMPRA FEITA NO CARTÃO DE CRÉDITO - NF EM NOME DO GILSON</strong>
+                            </td>
+                            <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="02" data-valor="4532.62">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>04/02/2026</strong> • N° -4532.62 • Placa: <strong>[XYZ]</strong> • <strong>SALARIO JANEIRO/2026</strong>
+                            </td>
+                            <td><span class="badge-sub">SALARIOS -CUSTO</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.532,62</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="05" data-valor="284.5">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/05/2026</strong> • N° -284.5 • Placa: <strong>[XYZ]</strong> • <strong>PARC. 04/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/ AELIETE - COMPRA FEITA NO CARTÃO DE CRÉDITO - NF EM NOME DO GILSON</strong>
+                            </td>
+                            <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="04" data-valor="816.66">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/04/2026</strong> • N° -816.66 • Placa: <strong>[XYZ]</strong> • <strong>ARRENDAMENTO DE VEICULOS (CONJUNTO CAMINHAO) - CAMINHÃO RODOU NO MÊS 03 APENAS 7 DIAS
+QAB-1877, QAB-1878, QAB-1879 Par. 03/12</strong>
+                            </td>
+                            <td><span class="badge-sub">LOCACAO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 816,66</td>
+                        </tr>
+                        <tr class="row-detail detail-outros" data-mes="02" data-valor="3500.0">
+                            <td style="padding-left: 50px;">
+                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/02/2026</strong> • N° -3500.0 • Placa: <strong>[XYZ]</strong> • <strong>ARRENDAMENTO DE VEICULOS (CONJUNTO CAMINHAO)
+QAB-1877, QAB-1878, QAB-1879 Par. 02/12</strong>
+                            </td>
+                            <td><span class="badge-sub">LOCACAO DE VEICULOS</span></td>
+                            <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 3.500,00</td>
+                        </tr>
+                        <!-- BLOCO 5: RESULTADO -->
+                        <tr class="row-total">
+                            <td>(=) RESULTADO / LUCRO LÍQUIDO DO EXERCÍCIO</td>
+                            <td>Resultado Final DRE</td>
+                            <td class="text-right val-resultado-liquido" style="color: #f87171;">R$ -74.465,53</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-left">
+            <i class="fa-solid fa-shield-cat" style="color: var(--accent-purple);"></i> 
+            Gestão e Auditoria Técnica: <span>Samuel Oliveira Silva</span>
+        </div>
+        <div class="footer-right">
+            <i class="fa-solid fa-code-branch" style="color: var(--accent-blue);"></i> 
+            <span>Agrovia DRE Master v8.32</span> 
+            <span style="color: var(--border-color);">•</span> 
+            <span>Atualizado em: 01/10/2026 às 14:27</span>
+        </div>
+    </footer>
+</div>
+
+<script>
+    function setViewMode(mode, btn) {
+        document.querySelectorAll('.view-toggle-btns .toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const body = document.getElementById('bodyTag');
+        if (mode === 'mobile') { body.classList.add('mobile-mode'); } else { body.classList.remove('mobile-mode'); }
+    }
+
+    function toggleAuditorVersion() {
+        const defaultContent = document.getElementById('defaultDashboardContent');
+        const analyticsCard = document.getElementById('analyticsTableCard');
+        const btn = document.getElementById('btnAuditorToggle');
+        analyticsCard.classList.toggle('visible');
+        if (analyticsCard.classList.contains('visible')) {
+            defaultContent.classList.add('hidden-content');
+            btn.innerHTML = '🛡️ Versão Auditor';
+            analyticsCard.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            defaultContent.classList.remove('hidden-content');
+            btn.innerHTML = '📋 Ver Tabela Analítica';
+        }
+    }
+
+    function toggleRow(className) {
+        document.querySelectorAll('.' + className).forEach(el => el.classList.toggle('open'));
+    }
+
+    function selecionarTodosMeses(status) {
+        document.querySelectorAll('.mes-check').forEach(cb => cb.checked = status);
+        filtrarTabelaPorMeses();
+    }
+
+    function formatarMoeda(valor) {
+        return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function filtrarTabelaPorMeses() {
+        const checkboxesMarcados = document.querySelectorAll('.mes-check:checked');
+        const mesesPermitidos = Array.from(checkboxesMarcados).map(cb => cb.value);
+        const categorias = ['detail-frete', 'detail-diesel', 'detail-manut', 'detail-pedagio', 'detail-seguros', 'detail-encargos', 'detail-outros'];
+        let totalReceitaFiltrada = 0;
+        let totalCustosFiltrado = 0;
+
+        categorias.forEach(catClass => {
+            const linhas = document.querySelectorAll('.' + catClass);
+            let somaCategoria = 0;
+            linhas.forEach(linha => {
+                const mes = linha.getAttribute('data-mes');
+                const valor = parseFloat(linha.getAttribute('data-valor')) || 0;
+                if (mesesPermitidos.includes(mes)) {
+                    linha.style.display = '';
+                    somaCategoria += valor;
+                } else {
+                    linha.style.display = 'none';
+                    linha.classList.remove('open');
+                }
+            });
+            if (catClass === 'detail-frete') {
+                const subEl = document.querySelector('.val-receita-sub');
+                if(subEl) subEl.innerText = formatarMoeda(somaCategoria);
+                totalReceitaFiltrada += somaCategoria;
+            } else {
+                const subLinhaEl = document.querySelector('.val-sub-' + catClass.replace('detail-', ''));
+                if (subLinhaEl) subLinhaEl.innerText = formatarMoeda(somaCategoria);
+                totalCustosFiltrado += somaCategoria;
+            }
+        });
+
+        const recTotEl = document.querySelector('.val-receita-total');
+        if(recTotEl) recTotEl.innerText = formatarMoeda(totalReceitaFiltrada);
+        const recLiqEl = document.querySelector('.val-rec-liquida');
+        if(recLiqEl) recLiqEl.innerText = formatarMoeda(totalReceitaFiltrada);
+        const custosTotEl = document.querySelector('.val-custos-total');
+        if(custosTotEl) custosTotEl.innerText = '-' + formatarMoeda(totalCustosFiltrado);
+
+        const resultadoLiquido = totalReceitaFiltrada - totalCustosFiltrado;
+        const resEl = document.querySelector('.val-resultado-liquido');
+        if(resEl) {
+            if (resultadoLiquido < 0) {
+                resEl.style.color = '#f87171';
+                resEl.innerText = '- ' + formatarMoeda(Math.abs(resultadoLiquido));
+            } else {
+                resEl.style.color = 'var(--accent-purple)';
+                resEl.innerText = formatarMoeda(resultadoLiquido);
+            }
+        }
+    }
+
+    // Gráfico de Barras (Evolução Mensal)
+    const ctxMain = document.getElementById('mainEvolutionChart').getContext('2d');
+    const mainEvolutionChart = new Chart(ctxMain, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago'],
+            datasets: [
+                {
+                    label: 'Receita Bruta', data: [890.0, 890.0, 0.0, 21435.309999999998, 0.0, 0.0, 0.0, 0.0],
+                    backgroundColor: 'rgba(56, 189, 248, 0.7)', borderColor: '#38bdf8', borderWidth: 1, borderRadius: 4
+                },
+                {
+                    label: 'Custo Total Frota', data: [25859.58, 24313.329999999998, 10625.42, 6833.36, 6016.7, 284.5, 9630.32, 4672.91],
+                    backgroundColor: 'rgba(46, 204, 113, 0.7)', borderColor: '#2ecc71', borderWidth: 1, borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, boxWidth: 12, padding: 15 } } },
+            scales: {
+                x: { grid: { color: 'rgba(46, 204, 113, 0.1)' }, ticks: { color: '#94a3b8' } },
+                y: { grid: { color: 'rgba(46, 204, 113, 0.1)' }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+
+    // Gráfico de Rosca com Injeção Direta
+    const ctxPie = document.getElementById('categoryPieChart').getContext('2d');
+    const categoryPieChart = new Chart(ctxPie, {
+        type: 'doughnut',
+        plugins: [ChartDataLabels],
+        data: {
+            labels: ["Seguros", "Outros Custos", "Combustível (Diesel)", "IPVA / Lic. / Multas", "Manutenção", "Pedágio"],
+            datasets: [{
+                data: [42056.19, 18545.18, 11983.08, 11542.079999999998, 10736.84, 2817.4700000000003],
+                backgroundColor: ['#34D399', '#FB923C', '#FBBF24', '#38BDF8', '#A3E635', '#F43F5E'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true, 
+            maintainAspectRatio: false,
+            rotation: -90,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10, family: 'Inter' }, boxWidth: 10, padding: 10 } },
+                datalabels: {
+                    color: '#ffffff',
+                    font: { family: 'Inter', weight: 'bold', size: 12 },
+                    formatter: (value, ctx) => {
+                        let sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        if (sum === 0) return '';
+                        let pct = (value * 100) / sum;
+                        if (pct < 1.0) return '';
+                        return pct.toFixed(1).replace('.', ',') + '%';
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let value = context.raw;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                            return ' ' + context.label + ': R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' (' + percentage + ')';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>
+
+
+

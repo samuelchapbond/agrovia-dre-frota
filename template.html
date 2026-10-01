@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrovia - "Frota" - Gestão de Custo de Frota & DRE Analítica</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f1e17;
+            --card-bg: #162c22;
+            --border-color: rgba(46, 204, 113, 0.25);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-purple: #a3e635;
+            --accent-pink: #2ecc71;
+            --accent-green: #34d399;
+            --accent-yellow: #fbbf24;
+            --accent-orange: #fb923c;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .dashboard-container { max-width: 1400px; margin: 0 auto; flex: 1; width: 100%; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
+        
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--card-bg); padding: 20px; border-radius: 12px;
+            border: 1px solid var(--border-color); flex-wrap: wrap; gap: 15px; box-sizing: border-box;
+        }
+        header h1 {
+            margin: 0; font-size: 20px; color: var(--text-primary);
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        header p { margin: 5px 0 0 0; font-size: 12px; color: var(--text-secondary); }
+        .author-signature { font-size: 11px; color: var(--accent-purple); opacity: 0.9; margin-top: 4px; letter-spacing: 0.3px; font-weight: 600; }
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .toggle-btn, .table-toggle-btn {
+            background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--accent-blue); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px;
+            transition: all 0.2s;
+        }
+        .table-toggle-btn { background: rgba(163, 230, 53, 0.15); border-color: rgba(163, 230, 53, 0.4); color: var(--accent-purple); }
+        .toggle-btn.active, .toggle-btn:hover { background: var(--accent-blue); color: #0f1e17; }
+        .table-toggle-btn:hover { background: var(--accent-purple); color: #0f1e17; }
+        
+        #defaultDashboardContent { display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; }
+        #defaultDashboardContent.hidden-content { display: none !important; }
+
+        .grid-container { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; }
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); box-sizing: border-box; }
+        
+        .kpi-card { grid-column: span 2; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+        @media (max-width: 1200px) { .kpi-card { grid-column: span 4; } }
+        body.mobile-mode .kpi-card { grid-column: span 6 !important; }
+        body.mobile-mode .chart-main, body.mobile-mode .chart-side { grid-column: span 12 !important; }
+
+        .kpi-card::after { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+        .kpi-blue::after { background: var(--accent-blue); }
+        .kpi-pink::after { background: var(--accent-pink); }
+        .kpi-purple::after { background: var(--accent-purple); }
+        .kpi-green::after { background: var(--accent-green); }
+        .kpi-yellow::after { background: var(--accent-yellow); }
+        .kpi-orange::after { background: var(--accent-orange); }
+
+        .kpi-title { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+        .kpi-value { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-top: 8px; }
+        
+        .chart-main { grid-column: span 8; }
+        .chart-side { grid-column: span 4; }
+        .chart-container { position: relative; height: 280px; width: 100%; }
+        .card-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary); }
+
+        .table-section { width: 100%; display: none; box-sizing: border-box; }
+        .table-section.visible { display: block; }
+        .dre-container { width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); box-sizing: border-box; }
+        .dre-header-title { font-size: 16px; font-weight: 700; color: var(--accent-purple); margin-bottom: 15px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        .dre-title-row { display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px; }
+
+        .filter-container { display: flex; flex-direction: column; gap: 8px; background: rgba(10, 23, 17, 0.9); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; box-sizing: border-box; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-secondary); font-weight: 600; flex-wrap: wrap; gap: 10px; }
+        .filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
+        .month-chip { display: flex; align-items: center; gap: 6px; background: rgba(46, 204, 113, 0.1); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; font-size: 11px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; }
+        .month-chip:hover { background: rgba(46, 204, 113, 0.2); }
+        .month-chip input { accent-color: var(--accent-purple); cursor: pointer; }
+        .filter-actions { font-size: 11px; color: var(--accent-blue); cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .filter-actions:hover { color: var(--accent-purple); }
+
+        table.dre-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        table.dre-table th, table.dre-table td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
+        table.dre-table th { background-color: rgba(19, 44, 34, 0.95); color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        table.dre-table tr:hover { background-color: rgba(46, 204, 113, 0.05); }
+        
+        .row-group { font-weight: 700; background-color: rgba(27, 77, 62, 0.4); color: var(--text-primary); cursor: pointer; }
+        .row-group:hover { background-color: rgba(27, 77, 62, 0.7); }
+        .row-sub { display: none; background-color: rgba(19, 44, 34, 0.6); cursor: pointer; }
+        .row-sub.open { display: table-row; }
+        .row-sub:hover { background-color: rgba(46, 204, 113, 0.1); }
+        .row-detail { display: none; background-color: rgba(10, 23, 17, 0.95); font-size: 12px; color: var(--text-secondary); }
+        .row-detail.open { display: table-row; }
+        .row-total { font-weight: 800; background-color: rgba(163, 230, 53, 0.1); color: var(--accent-purple); border-top: 2px solid var(--accent-purple); }
+        .text-right { text-align: right; }
+        .badge-cat { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .badge-sub { background: rgba(163, 230, 53, 0.15); color: var(--accent-purple); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+
+        footer {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+            gap: 15px;
+            box-sizing: border-box;
+        }
+        .footer-left { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; }
+        .footer-left span { color: var(--accent-purple); font-weight: 700; }
+        .footer-right {
+            display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-secondary);
+            background: rgba(10, 23, 17, 0.5); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body id="bodyTag">
+<div class="dashboard-container">
+    <header>
+        <div>
+            <h1>Agrovia - "Frota" - Gestão de Custo de Frota</h1>
+            <p>Atualizado em: 01/10/2026 às 13:30 | DRE Gerencial & Auditoria ERP</p>
+            <div class="author-signature">Autor do Relatório: Samuel Oliveira Silva</div>
+        </div>
+        <div class="header-actions">
+            <button id="btnAuditorToggle" class="table-toggle-btn" onclick="toggleAuditorVersion()">📋 Ver Tabela Analítica</button>
+            <div class="view-toggle-btns">
+                <button class="toggle-btn active" onclick="setViewMode('pc', this)">🖥 Visão PC</button>
+                <button class="toggle-btn" onclick="setViewMode('mobile', this)">📱 Visão Mobile</button>
+            </div>
+        </div>
+    </header>
+
+    <div id="defaultDashboardContent">
+        <div class="grid-container">
+            <div class="card kpi-card kpi-blue"><span class="kpi-title">Receita Bruta Total</span><div class="kpi-value kpi-receita-bruta">R$ 0,00</div></div>
+            <div class="card kpi-card kpi-pink"><span class="kpi-title">Custo Total da Frota</span><div class="kpi-value kpi-custo-total">R$ 0,00</div></div>
+            <div class="card kpi-card kpi-purple"><span class="kpi-title">Resultado Líquido</span><div class="kpi-value kpi-resultado-liquido">R$ 0,00</div></div>
+            <div class="card kpi-card kpi-green"><span class="kpi-title">Margem Líquida</span><div class="kpi-value kpi-margem-liquida">0,00%</div></div>
+            <div class="card kpi-card kpi-yellow"><span class="kpi-title">CPK (Custo / KM)</span><div class="kpi-value kpi-cpk">R$ 0,00</div></div>
+            <div class="card kpi-card kpi-orange"><span class="kpi-title">Consumo Médio (Km/L)</span><div class="kpi-value kpi-consumo">1.41 Km/L</div></div>
+
+            <div class="card chart-main"><div class="card-title">Evolução Mensal: Receitas vs Custos da Frota</div><div class="chart-container"><canvas id="mainEvolutionChart"></canvas></div></div>
+            <div class="card chart-side"><div class="card-title">Composição de Custos (Frota)</div><div class="chart-container"><canvas id="categoryPieChart"></canvas></div></div>
+        </div>
+    </div>
+
+    <div id="analyticsTableCard" class="table-section">
+        <div class="dre-container">
+            <div class="dre-header-title">
+                <div class="dre-title-row">
+                    <span><i class="fa-solid fa-file-invoice-dollar"></i> DRE Analítica Frota - 2026</span>
+                    <span style="font-size: 12px; color: var(--text-secondary);">Seleção Múltipla Dinâmica</span>
+                </div>
+                <div class="filter-container">
+                    <div class="filter-header">
+                        <span><i class="fa-solid fa-filter" style="color: var(--accent-blue);"></i> Filtrar por Mês (Selecione um ou mais):</span>
+                        <div>
+                            <span class="filter-actions" onclick="selecionarTodosMeses(true)">Marcar Todos</span> | 
+                            <span class="filter-actions" onclick="selecionarTodosMeses(false)">Desmarcar Todos</span>
+                        </div>
+                    </div>
+                    <div class="filter-options">
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="01" checked onchange="filtrarTabelaPorMeses()"> Janeiro</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="02" checked onchange="filtrarTabelaPorMeses()"> Fevereiro</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="03" checked onchange="filtrarTabelaPorMeses()"> Março</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="04" checked onchange="filtrarTabelaPorMeses()"> Abril</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="05" checked onchange="filtrarTabelaPorMeses()"> Maio</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="06" checked onchange="filtrarTabelaPorMeses()"> Junho</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="07" checked onchange="filtrarTabelaPorMeses()"> Julho</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="08" checked onchange="filtrarTabelaPorMeses()"> Agosto</label>
+                        <label class="month-chip"><input type="checkbox" class="mes-check" value="09" checked onchange="filtrarTabelaPorMeses()"> Setembro</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="max-height: 550px; overflow-y: auto;">
+                <table class="dre-table">
+                    <thead>
+                        <tr>
+                            <th>Estrutura da DRE / Histórico (Data e Parceiro)</th>
+                            <th>Natureza / Classificação</th>
+                            <th class="text-right">Valor Consolidado (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Injetado dinamicamente pelo Python -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-left">
+            <i class="fa-solid fa-shield-cat" style="color: var(--accent-purple);"></i> 
+            Gestão e Auditoria Técnica: <span>Samuel Oliveira Silva</span>
+        </div>
+        <div class="footer-right">
+            <i class="fa-solid fa-code-branch" style="color: var(--accent-blue);"></i> 
+            <span>Agrovia DRE Master v8.32</span> 
+            <span style="color: var(--border-color);">•</span> 
+            <span>Atualizado em: 01/10/2026 às 13:30</span>
+        </div>
+    </footer>
+</div>
+
+<script>
+    function setViewMode(mode, btn) {
+        document.querySelectorAll('.view-toggle-btns .toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const body = document.getElementById('bodyTag');
+        if (mode === 'mobile') { body.classList.add('mobile-mode'); } else { body.classList.remove('mobile-mode'); }
+    }
+
+    function toggleAuditorVersion() {
+        const defaultContent = document.getElementById('defaultDashboardContent');
+        const analyticsCard = document.getElementById('analyticsTableCard');
+        const btn = document.getElementById('btnAuditorToggle');
+        analyticsCard.classList.toggle('visible');
+        if (analyticsCard.classList.contains('visible')) {
+            defaultContent.classList.add('hidden-content');
+            btn.innerHTML = '🛡️ Versão Auditor';
+            analyticsCard.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            defaultContent.classList.remove('hidden-content');
+            btn.innerHTML = '📋 Ver Tabela Analítica';
+        }
+    }
+
+    function toggleRow(className) {
+        document.querySelectorAll('.' + className).forEach(el => el.classList.toggle('open'));
+    }
+
+    function selecionarTodosMeses(status) {
+        document.querySelectorAll('.mes-check').forEach(cb => cb.checked = status);
+        filtrarTabelaPorMeses();
+    }
+
+    function formatarMoeda(valor) {
+        return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function filtrarTabelaPorMeses() {
+        const checkboxesMarcados = document.querySelectorAll('.mes-check:checked');
+        const mesesPermitidos = Array.from(checkboxesMarcados).map(cb => cb.value);
+        const categorias = ['detail-frete', 'detail-diesel', 'detail-manut', 'detail-pedagio', 'detail-seguros', 'detail-encargos', 'detail-outros'];
+        let totalReceitaFiltrada = 0;
+        let totalCustosFiltrado = 0;
+
+        categorias.forEach(catClass => {
+            const linhas = document.querySelectorAll('.' + catClass);
+            let somaCategoria = 0;
+            linhas.forEach(linha => {
+                const mes = linha.getAttribute('data-mes');
+                const valor = parseFloat(linha.getAttribute('data-valor')) || 0;
+                if (mesesPermitidos.includes(mes)) {
+                    linha.style.display = '';
+                    somaCategoria += valor;
+                } else {
+                    linha.style.display = 'none';
+                    linha.classList.remove('open');
+                }
+            });
+            if (catClass === 'detail-frete') {
+                const subEl = document.querySelector('.val-receita-sub');
+                if(subEl) subEl.innerText = formatarMoeda(somaCategoria);
+                totalReceitaFiltrada += somaCategoria;
+            } else {
+                const subLinhaEl = document.querySelector('.val-sub-' + catClass.replace('detail-', ''));
+                if (subLinhaEl) subLinhaEl.innerText = formatarMoeda(somaCategoria);
+                totalCustosFiltrado += somaCategoria;
+            }
+        });
+
+        const recTotEl = document.querySelector('.val-receita-total');
+        if(recTotEl) recTotEl.innerText = formatarMoeda(totalReceitaFiltrada);
+        const recLiqEl = document.querySelector('.val-rec-liquida');
+        if(recLiqEl) recLiqEl.innerText = formatarMoeda(totalReceitaFiltrada);
+        const custosTotEl = document.querySelector('.val-custos-total');
+        if(custosTotEl) custosTotEl.innerText = '-' + formatarMoeda(totalCustosFiltrado);
+
+        const resultadoLiquido = totalReceitaFiltrada - totalCustosFiltrado;
+        const resEl = document.querySelector('.val-resultado-liquido');
+        if(resEl) {
+            if (resultadoLiquido < 0) {
+                resEl.style.color = '#f87171';
+                resEl.innerText = '- ' + formatarMoeda(Math.abs(resultadoLiquido));
+            } else {
+                resEl.style.color = 'var(--accent-purple)';
+                resEl.innerText = formatarMoeda(resultadoLiquido);
+            }
+        }
+    }
+
+    // Gráfico de Barras (Evolução Mensal)
+    const ctxMain = document.getElementById('mainEvolutionChart').getContext('2d');
+    const mainEvolutionChart = new Chart(ctxMain, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago'],
+            datasets: [
+                {
+                    label: 'Receita Bruta', data: [0,0,0,0,0,0,0,0],
+                    backgroundColor: 'rgba(56, 189, 248, 0.7)', borderColor: '#38bdf8', borderWidth: 1, borderRadius: 4
+                },
+                {
+                    label: 'Custo Total Frota', data: [0,0,0,0,0,0,0,0],
+                    backgroundColor: 'rgba(46, 204, 113, 0.7)', borderColor: '#2ecc71', borderWidth: 1, borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, boxWidth: 12, padding: 15 } } },
+            scales: {
+                x: { grid: { color: 'rgba(46, 204, 113, 0.1)' }, ticks: { color: '#94a3b8' } },
+                y: { grid: { color: 'rgba(46, 204, 113, 0.1)' }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+
+    // Gráfico de Rosca com Injeção Direta
+    const ctxPie = document.getElementById('categoryPieChart').getContext('2d');
+    const categoryPieChart = new Chart(ctxPie, {
+        type: 'doughnut',
+        plugins: [ChartDataLabels],
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: ['#34D399', '#FB923C', '#FBBF24', '#38BDF8', '#A3E635', '#F43F5E'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true, 
+            maintainAspectRatio: false,
+            rotation: -90,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10, family: 'Inter' }, boxWidth: 10, padding: 10 } },
+                datalabels: {
+                    color: '#ffffff',
+                    font: { family: 'Inter', weight: 'bold', size: 12 },
+                    formatter: (value, ctx) => {
+                        let sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        if (sum === 0) return '';
+                        let pct = (value * 100) / sum;
+                        if (pct < 1.0) return '';
+                        return pct.toFixed(1).replace('.', ',') + '%';
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let value = context.raw;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                            return ' ' + context.label + ': R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' (' + percentage + ')';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>
+
+
+

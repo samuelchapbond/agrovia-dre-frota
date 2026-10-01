@@ -1,0 +1,34 @@
+# Relatório de Status e Evolução do Projeto: Painel Gerencial Agrovia (DRE Frota)
+**Gestor e Auditor Técnico:** Samuel O Silva
+
+## 1. Visão Geral e Objetivos do Projeto
+O projeto **Agrovia - Gestão de Custo de Frota** tem como finalidade centralizar, auditar e exibir os indicadores financeiros e operacionais (DRE Gerencial) de frotas de transporte (foco inicial em conjunto carreta/rodocaçamba), utilizando dados brutos extraídos do **ERP Sankhya**. 
+
+A principal intenção é garantir transparência analítica por meio de um painel web intuitivo, de alta performance, equipado com visual moderno e responsivo (visões PC e Mobile).
+
+## 2. O Papel e as Funções da Inteligência Artificial no Projeto
+A IA atua como **Arquiteta de Software, Engenheira de Front-End e Auditora de Dados**, exercendo as seguintes funções:
+* **Validação de Consistência (Auditoria IA):** Cruzamento e verificação de dados financeiros e operacionais para evitar divergências nos lançamentos de receitas, custos com diesel, manutenção, pedágios, seguros e encargos.
+* **Refinamento de Layout e UX/UI:** Tradução dos direcionamentos de design do gestor em código estruturado (HTML5, CSS3, JavaScript e Chart.js), aplicando a paleta de cores oficial da empresa.
+* **Geração Automatizada de Código:** Criação iterativa de versões estáveis para unificar componentes visuais (como o rodapé de assinatura técnica e a tabela analítica oculta/expansível).
+
+## 3. O Que Já Foi Feito (Status Atual)
+* **Estrutura Base e Identidade Visual:** Implementação bem-sucedida da nova paleta de cores corporativa da Agrovia (tons de verde profundo, verde-limão e ciano nos gráficos e cartões KPI).
+* **Painel de Indicadores (KPIs Executivos):** Exibição consolidada de Receita Bruta Total, Custo Total da Frota, Resultado Líquido, Margem Líquida, CPK (Custo por KM) e Consumo Médio (Km/L).
+* **Gráficos Dinâmicos (Chart.js):** Gráfico principal de evolução mensal (Receita vs. Custo vs. Resultado Líquido) e gráfico de rosca de composição de custos por categoria.
+* **Auditoria Detalhada (Tabela Analítica Ocultável):** Inclusão da tabela interativa contendo o histórico detalhado dos lançamentos do ERP Sankhya, com botões para alternar entre as visões de PC e Mobile.
+* **Assinatura e Credenciamento Técnico:** Inserção oficial do rodapé e cabeçalho identificando a Gestão e Auditoria Técnica de Samuel O Silva.
+
+## 4. O Que Falta Fazer (Próximos Passos)
+* **Automatização de Carga (ETL/BAT):** Implementação de scripts em Python ou arquivos `.bat` na máquina local para automatizar a leitura dos relatórios exportados do Sankhya e popular o painel sem intervenção manual.
+* **Expansão Multiveículos:** Ampliação das regras de negócio para suportar múltiplos conjuntos de carretas, caminhões e veículos de apoio de forma segregada.
+* **Deploy e Homologação Final:** Publicação definitiva da versão homologada na pasta de produção do Google Drive da Agrovia.
+
+## 5. Melhorias Futuras Recomendadas
+* **Métricas Preditivas de Manutenção:** Utilizar dados históricos de quilometragem para prever a vida útil de pneus e peças, alertando sobre custos futuros antes que ocorram.
+* **Módulo de Alertas Automáticos:** Configuração de avisos visuais na tela para vencimentos iminentes de seguros, AET, IPVA e manutenções preventivas.
+* **Filtros Dinâmicos por Período:** Adicionar seletores interativos de datas e meses diretamente no cabeçalho para fatiamento em tempo real dos dados da DRE.
+
+---
+*Relatório gerado e validado sob a supervisão técnica de Samuel Profissional.*
+
