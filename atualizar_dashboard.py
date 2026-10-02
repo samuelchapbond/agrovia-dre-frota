@@ -8,49 +8,154 @@ import json
 import sys
 import re
 
-VERSAO_ATUAL = "v8.32-CorrecaoRoscaDefinitiva"
-print("="*80)
-print(f" 🚀 AGROVIA - MOTOR DE GESTÃO DE CUSTO DE FROTA [{VERSAO_ATUAL}]")
-print("    Correção definitiva da renderização do Gráfico de Rosca e KPIs...")
-print("="*80)
+VERSAO_ATUAL = "v8.36-RobustAuditEngine"
+
+def configurar_stdout_utf8() -> None:
+    """Evita UnicodeEncodeError no terminal Windows (cp1252) com emoji/acentos."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except Exception as exc:
+                print(f"[AVISO] Falha ao reconfigurar {stream.name}: {exc}", file=sys.stderr)
+
+configurar_stdout_utf8()
 
 os.makedirs("Banco_de_Dados", exist_ok=True)
 os.makedirs("versoes_codigo", exist_ok=True)
 os.makedirs("backup_relatorios", exist_ok=True)
 os.makedirs("relatorios_auditoria", exist_ok=True)
 
+PLACA_FROTA_PRINCIPAL = "OOM9749"
+
+def registar_log(status, mensagem):
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    linha_log = f"[{timestamp}] [{status}] {mensagem}\n"
+    caminho_log = os.path.join("relatorios_auditoria", "log_execucao.txt")
+    try:
+        with open(caminho_log, "a", encoding="utf-8") as f:
+            f.write(linha_log)
+    except Exception:
+        pass
+    print(linha_log.strip())
+
+PLACEHOLDERS_PLACA = {"", "N/D", "NAN", "NONE", "NULL", "N/A", "NA", "[XYZ]", "-", "0", "SEM PLACA"}
+
 def limpar_texto(texto):
     if pd.isna(texto):
         return ""
-    texto_str = str(texto).strip().lower()
+    texto_str = str(texto).strip()
     nfkd = unicodedata.normalize('NFKD', texto_str)
     return "".join([c for c in nfkd if not unicodedata.combining(c)])
+
+def celula_texto(valor) -> str:
+    if valor is None or (isinstance(valor, float) and pd.isna(valor)):
+        return ""
+    try:
+        if pd.isna(valor):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    texto = str(valor).strip()
+    if texto.lower() in {"nan", "nat", "none", "null"}:
+        return ""
+    return texto
+
+PADRAO_PLACA = re.compile(
+    r'(?<![A-Z0-9])([A-Z]{3}-?[0-9][A-Z0-9][0-9]{2})(?![A-Z0-9])'
+)
+
+def extrair_placa_do_texto(texto):
+    if not texto:
+        return None
+    match = PADRAO_PLACA.search(str(texto).upper())
+    if match:
+        return match.group(1).replace("-", "")
+    return None
+
+def ficheiro_excel_valido(caminho: str) -> bool:
+    nome = os.path.basename(caminho)
+    nome_l = nome.lower()
+    if not nome_l.endswith((".xlsx", ".xls")):
+        return False
+    if nome.startswith("~$") or nome.startswith("~"):
+        return False
+    if "copia" in limpar_texto(nome_l):
+        return False
+    return True
+
+def listar_ficheiros_fonte() -> list:
+    candidatos = [
+        f for f in glob.glob(os.path.join("Banco_de_Dados", "*.*"))
+        if ficheiro_excel_valido(f)
+    ]
+    # Mesma seleção do auditor; os extratos "Financeiro" (período completo) vêm primeiro
+    # para prevalecerem na deduplicação por Nro Único.
+    return sorted(
+        candidatos,
+        key=lambda f: ("financeiro" not in limpar_texto(os.path.basename(f)).lower(), os.path.basename(f).lower())
+    )
+
+def remover_duplicados_entre_ficheiros(df: pd.DataFrame, col_nr_unico) -> pd.DataFrame:
+    if not col_nr_unico or col_nr_unico not in df.columns:
+        return df
+    chave = df[col_nr_unico].map(celula_texto).str.split('.').str[0]
+    tem_chave = chave != ""
+    origem_ref = df.loc[tem_chave, '__origem'].groupby(chave[tem_chave]).transform('first')
+    duplicado = tem_chave & (df['__origem'] != origem_ref.reindex(df.index))
+    if duplicado.any():
+        resumo = df.loc[duplicado, '__origem'].value_counts().to_dict()
+        registar_log("INFO", f"Removidos {int(duplicado.sum())} lançamentos repetidos entre ficheiros (Nro Único): {resumo}")
+    return df.loc[~duplicado]
 
 def carregar_excel_inteligente(caminho_arquivo):
     for linha_cabecalho in range(0, 5):
         try:
             df = pd.read_excel(caminho_arquivo, header=linha_cabecalho)
             colunas_str = [str(c) for c in df.columns]
-            if any('natureza' in limpar_texto(c) for c in colunas_str) or any('valor' in limpar_texto(c) for c in colunas_str) or any('historico' in limpar_texto(c) for c in colunas_str):
+            if any('natureza' in limpar_texto(c).lower() for c in colunas_str) or any('valor' in limpar_texto(c).lower() for c in colunas_str):
                 return df
         except Exception:
             continue
     return pd.read_excel(caminho_arquivo)
 
 def encontrar_coluna(df, possiveis_nomes):
-    colunas_norm = {limpar_texto(c): c for c in df.columns}
+    colunas_norm = {limpar_texto(c).lower(): c for c in df.columns}
     for nome in possiveis_nomes:
-        nome_limpo = limpar_texto(nome)
+        nome_limpo = limpar_texto(nome).lower()
         if nome_limpo in colunas_norm:
             return colunas_norm[nome_limpo]
     for col_norm, col_original in colunas_norm.items():
         for nome in possiveis_nomes:
-            if limpar_texto(nome) in col_norm:
+            if limpar_texto(nome).lower() in col_norm:
                 return col_original
     return None
 
+def encontrar_coluna_nr_unico(df):
+    possiveis = ['nufin', 'nunota', 'nu. unico', 'numero unico', 'nrunico', 'nr unico', 'id unico', 'chave', 'lancamento']
+    colunas_norm = {limpar_texto(c).lower(): c for c in df.columns}
+    for p in possiveis:
+        if p in colunas_norm:
+            return colunas_norm[p]
+    for col_norm, col_original in colunas_norm.items():
+        if any(p in col_norm for p in ['nufin', 'nunota', 'nrunico', 'unico', 'chave']):
+            return col_original
+    return None
+
+def encontrar_coluna_parceiro(df):
+    for col in df.columns:
+        c_lower = limpar_texto(str(col)).lower()
+        if ('nome' in c_lower or 'razao' in c_lower or 'descricao' in c_lower) and ('parceiro' in c_lower or 'cliente' in c_lower or 'fornecedor' in c_lower):
+            return col
+    for col in df.columns:
+        c_lower = limpar_texto(str(col)).lower()
+        if 'nome' in c_lower or 'razao' in c_lower:
+            return col
+    return encontrar_coluna(df, ['Parceiro', 'Nome Parceiro', 'Razao Social', 'Cliente', 'Fornecedor'])
+
 def classificar_categoria_despesa(natureza, historico):
-    texto = limpar_texto(f"{natureza} {historico}")
+    texto = limpar_texto(f"{natureza} {historico}").lower()
     if any(k in texto for k in ['combust', 'diesel', 'arla']):
         return ('Combustível (Diesel)', 'detail-diesel', 'Combustível Diesel S10')
     elif any(k in texto for k in ['manut', 'peca', 'pneu', 'borracharia', 'oficina', 'mecanica']):
@@ -64,293 +169,359 @@ def classificar_categoria_despesa(natureza, historico):
     else:
         return ('Outros Custos', 'detail-outros', 'Outros Custos Operacionais')
 
-def df_row_has_col(row, col):
+def main():
+    print("="*80)
+    print(f" 🚀 AGROVIA - MOTOR DE GESTÃO DE CUSTO DE FROTA [{VERSAO_ATUAL}]")
+    print("="*80)
+    
+    registar_log("INFO", f"Início da execução do motor [{VERSAO_ATUAL}].")
+
+    todos_arquivos = listar_ficheiros_fonte()
+
+    if not todos_arquivos:
+        registar_log("ERRO_CRITICO", "Nenhum ficheiro Excel válido encontrado na pasta Banco_de_Dados.")
+        sys.exit(1)
+
+    dfs_consolidados = []
+    origens = []
+    for arq in todos_arquivos:
+        try:
+            df_temp = carregar_excel_inteligente(arq)
+            if not df_temp.empty:
+                dfs_consolidados.append(df_temp)
+                origens.append(os.path.basename(arq))
+                registar_log("INFO", f"Ficheiro carregado com sucesso: {os.path.basename(arq)}")
+        except Exception as e:
+            registar_log("AVISO", f"Falha ao ler o ficheiro {os.path.basename(arq)}: {str(e)}")
+
+    if not dfs_consolidados:
+        registar_log("ERRO_CRITICO", "Todos os ficheiros Excel falharam ao ser processados.")
+        sys.exit(1)
+
+    df_global = (
+        pd.concat(dfs_consolidados, keys=origens, names=['__origem', None])
+        .copy()
+        .reset_index(level=0)
+        .reset_index(drop=True)
+    )
+    df_global = remover_duplicados_entre_ficheiros(df_global, encontrar_coluna_nr_unico(df_global))
+    registar_log("INFO", f"Consolidação concluída. Total de registos combinados: {len(df_global)}")
+
     try:
-        return col in row.index and pd.notna(row[col])
-    except:
-        return False
+        col_valor = encontrar_coluna(df_global, ['Valor Líquido', 'Valor Liquido', 'VALOR', 'Valor'])
+        col_nat = encontrar_coluna(df_global, ['Descrição (Natureza)', 'Natureza', 'Descricao (Natureza)'])
+        col_hist = encontrar_coluna(df_global, ['Histórico', 'Historico', 'HISTORICO'])
+        col_obs = encontrar_coluna(df_global, ['Observação', 'Observacao', 'Observação padrão', 'Observacao padrao'])
+        col_ident = encontrar_coluna(df_global, ['Identificação', 'Identificacao'])
+        col_nr_unico = encontrar_coluna_nr_unico(df_global)
+        col_placa = encontrar_coluna(df_global, ['Placa', 'Marca [Placa]', 'Veiculo', 'Frota', 'Equipamento'])
+        col_parceiro = encontrar_coluna_parceiro(df_global)
 
-padrao_busca = os.path.join("Banco_de_Dados", "*.*")
-todos_arquivos = [f for f in glob.glob(padrao_busca) if f.lower().endswith(('.xlsx', '.xls')) and not os.path.basename(f).startswith('~$')]
+        col_emissao = encontrar_coluna(df_global, ['Data Emissao', 'Emissao', 'Data Movimento', 'Data'])
+        col_baixa = encontrar_coluna(df_global, ['Data Baixa', 'Baixa'])
+        col_vencimento = encontrar_coluna(df_global, ['Data Vencimento', 'Vencimento'])
 
-if not todos_arquivos:
-    sys.exit(1)
+        df_frota = df_global.copy()
+        df_frota['Valor_Numerico'] = pd.to_numeric(df_frota[col_valor], errors='coerce').fillna(0.0)
 
-dfs_consolidados = []
-for arq in todos_arquivos:
-    try:
-        df_temp = carregar_excel_inteligente(arq)
-        if not df_temp.empty:
-            dfs_consolidados.append(df_temp)
+        dados_filtrados = []
+
+        for _, row in df_frota.iterrows():
+            val = row['Valor_Numerico']
+            if val == 0.0:
+                continue
+
+            nat = celula_texto(row[col_nat]) if col_nat and col_nat in df_frota.columns else "N/D"
+            hist = celula_texto(row[col_hist]) if col_hist and col_hist in df_frota.columns else ""
+            obs = celula_texto(row[col_obs]) if col_obs and col_obs in df_frota.columns else ""
+            ident = celula_texto(row[col_ident]) if col_ident and col_ident in df_frota.columns else ""
+            texto_completo = " - ".join([p for p in (nat, hist, obs, ident) if p])
+            texto_limpo_verificacao = limpar_texto(texto_completo).lower()
+
+            # Ignora lixo e lançamentos Tesou
+            if any(termo in texto_limpo_verificacao for termo in ['total geral', 'resumo', 'total da conta']) or 'tesou' in texto_limpo_verificacao:
+                continue
+
+            # Regra de Datas Inteligente
+            if val > 0:
+                data_raw = row[col_emissao] if col_emissao and col_emissao in df_frota.columns else None
+            else:
+                b_val = row[col_baixa] if col_baixa and col_baixa in df_frota.columns else None
+                v_val = row[col_vencimento] if col_vencimento and col_vencimento in df_frota.columns else None
+                e_val = row[col_emissao] if col_emissao and col_emissao in df_frota.columns else None
+                
+                if pd.notna(b_val) and str(b_val).strip() not in ["", "NaT", "nan", "None"]:
+                    data_raw = b_val
+                elif pd.notna(v_val) and str(v_val).strip() not in ["", "NaT", "nan", "None"]:
+                    data_raw = v_val
+                else:
+                    data_raw = e_val
+
+            dt_parsed = pd.to_datetime(data_raw, errors='coerce')
+            if pd.isna(dt_parsed):
+                continue
+
+            # Validação de Placa: campo ERP, depois placas ocultas no histórico/obs/identificação
+            placa_erp = celula_texto(row[col_placa]) if col_placa and col_placa in df_frota.columns else ""
+            placa_erp_limpa = placa_erp.strip().upper()
+            erp_sem_placa = (
+                placa_erp_limpa in PLACEHOLDERS_PLACA
+                or placa_erp_limpa.startswith("[")
+            )
+            placa_final = (
+                extrair_placa_do_texto(placa_erp)
+                or extrair_placa_do_texto(texto_completo)
+            )
+            if not placa_final:
+                placa_final = "NÃO INFORMADA" if erp_sem_placa else placa_erp
+
+            placa_upper_check = placa_final.upper()
+            # Se for outro veículo, exclui do DRE principal da frota
+            if placa_upper_check not in ["NÃO INFORMADA", "N/A", "N/D"] and PLACA_FROTA_PRINCIPAL not in placa_upper_check:
+                continue
+
+            placa_exibicao = f"{PLACA_FROTA_PRINCIPAL} (Validada)" if PLACA_FROTA_PRINCIPAL in placa_upper_check else placa_final
+            nr_u = str(row[col_nr_unico]).split('.')[0] if col_nr_unico and col_nr_unico in df_frota.columns and pd.notna(row[col_nr_unico]) else "N/D"
+            parceiro_val = str(row[col_parceiro]) if col_parceiro and col_parceiro in df_frota.columns and pd.notna(row[col_parceiro]) else (hist if hist else nat)
+
+            dados_filtrados.append({
+                'data_str': dt_parsed.strftime('%d/%m/%Y'),
+                'mes': int(dt_parsed.month),
+                'valor': val,
+                'natureza': nat,
+                'historico': hist,
+                'parceiro': parceiro_val,
+                'nr_unico': nr_u,
+                'placa': placa_exibicao
+            })
+
+        df_processado = pd.DataFrame(dados_filtrados)
+
+        if df_processado.empty:
+            registar_log("AVISO", "Nenhum registo válido encontrado após aplicar os filtros da frota.")
+            sys.exit(0)
+
+        df_receitas = df_processado[df_processado['valor'] > 0]
+        df_despesas = df_processado[df_processado['valor'] < 0]
+
+        receitas_por_mes = [0.0] * 12
+        despesas_por_mes = [0.0] * 12
+
+        for _, row in df_receitas.iterrows():
+            m = row['mes']
+            if 1 <= m <= 12:
+                receitas_por_mes[m - 1] += float(row['valor'])
+
+        for _, row in df_despesas.iterrows():
+            m = row['mes']
+            val = abs(float(row['valor']))
+            if 1 <= m <= 12:
+                despesas_por_mes[m - 1] += val
+
+        total_receita = float(df_receitas['valor'].sum())
+        total_despesa = float(df_despesas['valor'].abs().sum())
+
+        lista_detalhes_receitas = []
+        for _, row in df_receitas.iterrows():
+            lista_detalhes_receitas.append({
+                'data': row['data_str'], 'mes': f"{row['mes']:02d}", 'parceiro': row['parceiro'], 'natureza': row['natureza'], 'valor': row['valor'], 'nr_unico': row['nr_unico'], 'placa': row['placa']
+            })
+
+        despesas_por_cat = {
+            'Combustível (Diesel)': {'total': 0.0, 'linhas': []},
+            'Manutenção': {'total': 0.0, 'linhas': []},
+            'Pedágio': {'total': 0.0, 'linhas': []},
+            'Seguros': {'total': 0.0, 'linhas': []},
+            'IPVA / Lic. / Multas': {'total': 0.0, 'linhas': []},
+            'Outros Custos': {'total': 0.0, 'linhas': []}
+        }
+
+        for _, row in df_despesas.iterrows():
+            val = abs(float(row['valor']))
+            cat_nome, cat_class, badge_sub = classificar_categoria_despesa(row['natureza'], row['historico'])
+            despesas_por_cat[cat_nome]['total'] += val
+            despesas_por_cat[cat_nome]['linhas'].append({
+                'data': row['data_str'], 'mes': f"{row['mes']:02d}", 'parceiro': row['parceiro'], 'natureza': row['natureza'], 'valor': val, 'nr_unico': row['nr_unico'], 'placa': row['placa']
+            })
+
+        KM_TOTAL_PERIODO = 52000.0  
+        cpk_calculado = (total_despesa / KM_TOTAL_PERIODO) if KM_TOTAL_PERIODO > 0 else 0.0
+
     except Exception as e:
-        pass
+        registar_log("ERRO_CRITICO", f"Erro crítico no processamento dos dados financeiros: {str(e)}")
+        sys.exit(1)
 
-if not dfs_consolidados:
-    sys.exit(1)
+    resultado_liquido = float(total_receita - total_despesa)
+    margem_liquida = float((resultado_liquido / total_receita * 100) if total_receita > 0 else 0)
 
-df_global = pd.concat(dfs_consolidados, ignore_index=True)
+    arquivo_base = 'template.html' if os.path.exists('template.html') else 'index.html'
+    try:
+        with open(arquivo_base, 'r', encoding='utf-8') as f:
+            html_template = f.read()
+    except Exception as e:
+        registar_log("ERRO_CRITICO", f"Não foi possível ler o template HTML base: {str(e)}")
+        sys.exit(1)
 
-try:
-    col_valor = encontrar_coluna(df_global, ['Valor Líquido', 'Valor Liquido', 'VALOR', 'Valor'])
-    col_rec_desp = encontrar_coluna(df_global, ['Receita/Despesa', 'Tipo Operação', 'Tipo de Operação', 'Operação'])
-    col_nat = encontrar_coluna(df_global, ['Descrição (Natureza)', 'Natureza', 'Descricao (Natureza)'])
-    col_hist = encontrar_coluna(df_global, ['Histórico', 'Historico', 'HISTORICO'])
-    col_data = encontrar_coluna(df_global, ['Data', 'Competencia', 'Emissao', 'Vencimento', 'Data Movimento'])
-    col_nr_unico = encontrar_coluna(df_global, ['Nr Único', 'Numero Unico', 'NrUnico', 'ID', 'Chave', 'Lancamento'])
-    col_placa = encontrar_coluna(df_global, ['Placa', 'Marca [Placa]', 'Veiculo', 'Frota', 'Equipamento'])
+    data_hoje = datetime.datetime.now().strftime('%d/%m/%Y às %H:%M')
 
-    df_frota = df_global.copy()
+    def fmt_brl(val):
+        return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
-    if col_data and col_data in df_frota.columns:
-        df_frota['Data_Parsed'] = pd.to_datetime(df_frota[col_data], errors='coerce')
-        df_frota['Mes'] = df_frota['Data_Parsed'].dt.month.fillna(1).astype(int)
-        df_frota['Data_Str'] = df_frota['Data_Parsed'].dt.strftime('%d/%m/%Y').fillna('20/01/2026')
-    else:
-        df_frota['Mes'] = 1
-        df_frota['Data_Str'] = '20/01/2026'
+    rec_fmt = fmt_brl(total_receita)
+    desp_fmt = fmt_brl(total_despesa)
+    res_abs = fmt_brl(abs(resultado_liquido))
+    res_fmt = f"R$ -{res_abs.replace('R$ ', '')}" if resultado_liquido < 0 else res_abs
+    margem_fmt = f"{margem_liquida:.2f}%"
+    cpk_fmt = fmt_brl(cpk_calculado)
 
-    df_frota['Valor_Numerico'] = pd.to_numeric(df_frota[col_valor], errors='coerce').fillna(0.0)
+    html_final = html_template
 
-    if col_rec_desp and col_rec_desp in df_frota.columns:
-        rec_desp_limpo = df_frota[col_rec_desp].astype(str).apply(limpar_texto)
-        df_receitas = df_frota[rec_desp_limpo.str.contains('rec|cred|fatur', na=False) | (df_frota['Valor_Numerico'] > 0)]
-        df_despesas = df_frota[rec_desp_limpo.str.contains('desp|pag|debit|cust', na=False) | (df_frota['Valor_Numerico'] < 0)]
-    else:
-        df_receitas = df_frota[df_frota['Valor_Numerico'] > 0]
-        df_despesas = df_frota[df_frota['Valor_Numerico'] < 0]
+    html_final = re.sub(r'Atualizado em: \d{2}/\d{2}/\d{4} às \d{2}:\d{2}', f"Atualizado em: {data_hoje}", html_final)
+    html_final = re.sub(r'Agrovia DRE Master v[\d\.]+', f'Agrovia DRE Master {VERSAO_ATUAL}', html_final)
 
-    receitas_por_mes = [0.0] * 12
-    despesas_por_mes = [0.0] * 12
+    html_final = re.sub(r'class="kpi-value kpi-receita-bruta">[^<]+<', f'class="kpi-value kpi-receita-bruta">{rec_fmt}<', html_final)
+    html_final = re.sub(r'class="kpi-value kpi-custo-total">[^<]+<', f'class="kpi-value kpi-custo-total">{desp_fmt}<', html_final)
+    html_final = re.sub(r'class="kpi-value kpi-resultado-liquido">[^<]+<', f'class="kpi-value kpi-resultado-liquido">{res_fmt}<', html_final)
+    html_final = re.sub(r'class="kpi-value kpi-margem-liquida">[^<]+<', f'class="kpi-value kpi-margem-liquida">{margem_fmt}<', html_final)
+    html_final = re.sub(r'class="kpi-value kpi-cpk">[^<]+<', f'class="kpi-value kpi-cpk">{cpk_fmt}<', html_final)
 
-    for _, row in df_receitas.iterrows():
-        m = int(row['Mes'])
-        if 1 <= m <= 12:
-            receitas_por_mes[m - 1] += float(row['Valor_Numerico'])
+    str_rec_mes = json.dumps(receitas_por_mes[:8])
+    str_desp_mes = json.dumps(despesas_por_mes[:8])
 
-    for _, row in df_despesas.iterrows():
-        m = int(row['Mes'])
-        val = abs(float(row['Valor_Numerico']))
-        if 1 <= m <= 12:
-            despesas_por_mes[m - 1] += val
+    html_final = re.sub(r'label:\s*\'Receita Bruta\',\s*data:\s*\[[^\]]+\]', f"label: 'Receita Bruta', data: {str_rec_mes}", html_final)
+    html_final = re.sub(r'label:\s*\'Custo Total Frota\',\s*data:\s*\[[^\]]+\]', f"label: 'Custo Total Frota', data: {str_desp_mes}", html_final)
 
-    total_receita = float(df_receitas['Valor_Numerico'].sum())
-    total_despesa = float(df_despesas['Valor_Numerico'].abs().sum())
+    cat_ordenadas = sorted(despesas_por_cat.items(), key=lambda x: x[1]['total'], reverse=True)
+    cat_nomes = [item[0] for item in cat_ordenadas]
+    lista_rosca = [item[1]['total'] for item in cat_ordenadas]
 
-    lista_detalhes_receitas = []
-    for _, row in df_receitas.iterrows():
-        nat = str(row[col_nat]) if col_nat and col_nat in df_receitas.columns else "Receita de Frete"
-        hist = str(row[col_hist]) if col_hist and col_hist in df_receitas.columns else ""
-        val = float(row['Valor_Numerico'])
-        mes_num = f"{int(row['Mes']):02d}"
-        data_str = row['Data_Str']
-        nr_u = str(row[col_nr_unico]) if col_nr_unico and df_row_has_col(row, col_nr_unico) else "N/D"
-        placa_val = str(row[col_placa]) if col_placa and df_row_has_col(row, col_placa) else "OOM9749"
-        
-        lista_detalhes_receitas.append({
-            'data': data_str, 'mes': mes_num, 'parceiro': hist if hist else nat, 'natureza': nat, 'valor': val, 'nr_unico': nr_u, 'placa': placa_val
-        })
+    str_rosca = json.dumps(lista_rosca)
+    str_labels_rosca = json.dumps(cat_nomes, ensure_ascii=False)
 
-    despesas_por_cat = {
-        'Combustível (Diesel)': {'total': 0.0, 'linhas': []},
-        'Manutenção': {'total': 0.0, 'linhas': []},
-        'Pedágio': {'total': 0.0, 'linhas': []},
-        'Seguros': {'total': 0.0, 'linhas': []},
-        'IPVA / Lic. / Multas': {'total': 0.0, 'linhas': []},
-        'Outros Custos': {'total': 0.0, 'linhas': []}
-    }
+    idx_doughnut = html_final.find("type: 'doughnut'")
+    if idx_doughnut != -1:
+        bloco_doughnut = html_final[idx_doughnut:idx_doughnut+900]
+        bloco_novo = re.sub(r'labels:\s*\[[^\]]*\]', f"labels: {str_labels_rosca}", bloco_doughnut)
+        bloco_novo = re.sub(r'data:\s*\[[^\]]*\]', f"data: {str_rosca}", bloco_novo, count=1)
+        html_final = html_final[:idx_doughnut] + bloco_novo + html_final[idx_doughnut+900:]
 
-    for _, row in df_despesas.iterrows():
-        nat = str(row[col_nat]) if col_nat and col_nat in df_despesas.columns else "Despesa Frota"
-        hist = str(row[col_hist]) if col_hist and col_hist in df_despesas.columns else ""
-        val = abs(float(row['Valor_Numerico']))
-        mes_num = f"{int(row['Mes']):02d}"
-        data_str = row['Data_Str']
-        nr_u = str(row[col_nr_unico]) if col_nr_unico and df_row_has_col(row, col_nr_unico) else "N/D"
-        placa_val = str(row[col_placa]) if col_placa and df_row_has_col(row, col_placa) else "OOM9749"
-        
-        cat_nome, cat_class, badge_sub = classificar_categoria_despesa(nat, hist)
-        despesas_por_cat[cat_nome]['total'] += val
-        despesas_por_cat[cat_nome]['linhas'].append({
-            'data': data_str, 'mes': mes_num, 'parceiro': hist if hist else nat, 'natureza': nat, 'valor': val, 'nr_unico': nr_u, 'placa': placa_val
-        })
+    html_linhas_tabela = f"""
+                            <!-- BLOCO 1: RECEITA -->
+                            <tr class="row-group" onclick="toggleRow('sub-receita')">
+                                <td><i class="fa-solid fa-chevron-right" id="icon-sub-receita"></i> (+) RECEITA OPERACIONAL BRUTA</td>
+                                <td><span class="badge-cat">Faturamento</span></td>
+                                <td class="text-right val-receita-total" style="color: var(--accent-blue);">{rec_fmt}</td>
+                            </tr>
+                            <tr class="row-sub sub-receita" onclick="toggleRow('detail-frete')">
+                                <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Prestação de Serviços de Transporte</td>
+                                <td><span class="badge-sub">Receita de Frete</span></td>
+                                <td class="text-right val-receita-sub">{rec_fmt}</td>
+                            </tr>"""
 
-    KM_TOTAL_PERIODO = 52000.0  
-    cpk_calculado = (total_despesa / KM_TOTAL_PERIODO) if KM_TOTAL_PERIODO > 0 else 0.0
-
-except Exception as e:
-    sys.exit(1)
-
-resultado_liquido = float(total_receita - total_despesa)
-margem_liquida = float((resultado_liquido / total_receita * 100) if total_receita > 0 else 0)
-
-arquivo_base = 'template.html' if os.path.exists('template.html') else 'index.html'
-with open(arquivo_base, 'r', encoding='utf-8') as f:
-    html_template = f.read()
-
-data_hoje = datetime.datetime.now().strftime('%d/%m/%Y às %H:%M')
-
-def fmt_brl(val):
-    return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-
-rec_fmt = fmt_brl(total_receita)
-desp_fmt = fmt_brl(total_despesa)
-res_abs = fmt_brl(abs(resultado_liquido))
-res_fmt = f"R$ -{res_abs.replace('R$ ', '')}" if resultado_liquido < 0 else f"R$ {res_abs}"
-margem_fmt = f"{margem_liquida:.2f}%"
-cpk_fmt = fmt_brl(cpk_calculado)
-
-html_final = html_template
-
-# 1. Cabeçalho e Versão
-html_final = re.sub(r'Atualizado em: \d{2}/\d{2}/\d{4} às \d{2}:\d{2}', f"Atualizado em: {data_hoje}", html_final)
-html_final = re.sub(r'Agrovia DRE Master v[\d\.]+', 'Agrovia DRE Master v8.32', html_final)
-
-# 2. Atualização dos KPIs principais por classe única
-html_final = re.sub(r'class="kpi-value kpi-receita-bruta">[^<]+<', f'class="kpi-value kpi-receita-bruta">{rec_fmt}<', html_final)
-html_final = re.sub(r'class="kpi-value kpi-custo-total">[^<]+<', f'class="kpi-value kpi-custo-total">{desp_fmt}<', html_final)
-html_final = re.sub(r'class="kpi-value kpi-resultado-liquido">[^<]+<', f'class="kpi-value kpi-resultado-liquido">{res_fmt}<', html_final)
-html_final = re.sub(r'class="kpi-value kpi-margem-liquida">[^<]+<', f'class="kpi-value kpi-margem-liquida">{margem_fmt}<', html_final)
-html_final = re.sub(r'class="kpi-value kpi-cpk">[^<]+<', f'class="kpi-value kpi-cpk">{cpk_fmt}<', html_final)
-
-# 3. Gráficos (Injeção de arrays numéricos)
-str_rec_mes = json.dumps(receitas_por_mes[:8])
-str_desp_mes = json.dumps(despesas_por_mes[:8])
-
-html_final = re.sub(r'label:\s*\'Receita Bruta\',\s*data:\s*\[[^\]]+\]', f"label: 'Receita Bruta', data: {str_rec_mes}", html_final)
-html_final = re.sub(r'label:\s*\'Custo Total Frota\',\s*data:\s*\[[^\]]+\]', f"label: 'Custo Total Frota', data: {str_desp_mes}", html_final)
-
-# ORDENAÇÃO DECRESCENTE (DO MAIOR PARA O MENOR CUSTO)
-cat_ordenadas = sorted(despesas_por_cat.items(), key=lambda x: x[1]['total'], reverse=True)
-cat_nomes = [item[0] for item in cat_ordenadas]
-lista_rosca = [item[1]['total'] for item in cat_ordenadas]
-
-str_rosca = json.dumps(lista_rosca)
-str_labels_rosca = json.dumps(cat_nomes, ensure_ascii=False)
-
-# Injeção direta no bloco do gráfico de rosca para garantir renderização imediata
-idx_doughnut = html_final.find("type: 'doughnut'")
-if idx_doughnut != -1:
-    bloco_doughnut = html_final[idx_doughnut:idx_doughnut+900]
-    bloco_novo = re.sub(r'labels:\s*\[[^\]]*\]', f"labels: {str_labels_rosca}", bloco_doughnut)
-    bloco_novo = re.sub(r'data:\s*\[[^\]]*\]', f"data: {str_rosca}", bloco_novo, count=1)
-    html_final = html_final[:idx_doughnut] + bloco_novo + html_final[idx_doughnut+900:]
-
-# 4. MONTAGEM DINÂMICA DA TABELA DRE COM NÚMERO ÚNICO & PLACA
-html_linhas_tabela = f"""
-                        <!-- BLOCO 1: RECEITA -->
-                        <tr class="row-group" onclick="toggleRow('sub-receita')">
-                            <td><i class="fa-solid fa-chevron-right" id="icon-sub-receita"></i> (+) RECEITA OPERACIONAL BRUTA</td>
-                            <td><span class="badge-cat">Faturamento</span></td>
-                            <td class="text-right val-receita-total" style="color: var(--accent-blue);">{rec_fmt}</td>
-                        </tr>
-                        <tr class="row-sub sub-receita" onclick="toggleRow('detail-frete')">
-                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Prestação de Serviços de Transporte</td>
-                            <td><span class="badge-sub">Receita de Frete</span></td>
-                            <td class="text-right val-receita-sub">{rec_fmt}</td>
-                        </tr>"""
-
-if lista_detalhes_receitas:
-    for item in lista_detalhes_receitas:
-        html_linhas_tabela += f"""
-                        <tr class="row-detail detail-frete" data-mes="{item['mes']}" data-valor="{item['valor']}">
-                            <td style="padding-left: 50px;">
-                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>{item['data']}</strong> • N° {item['nr_unico']} • Placa: <strong>{item['placa']}</strong> • <strong>{item['parceiro']}</strong>
-                            </td>
-                            <td><span class="badge-sub">Frete / Operação</span></td>
-                            <td class="text-right" style="color: var(--text-primary); font-weight: 600;">{fmt_brl(item['valor'])}</td>
-                        </tr>"""
-else:
-    html_linhas_tabela += f"""
-                        <tr class="row-detail detail-frete" data-mes="01" data-valor="0">
-                            <td style="padding-left: 50px;" colspan="3">Nenhuma receita registada no período.</td>
-                        </tr>"""
-
-html_linhas_tabela += f"""
-                        <!-- BLOCO 2: DEDUÇÕES -->
-                        <tr class="row-group" onclick="toggleRow('sub-deducoes')">
-                            <td><i class="fa-solid fa-chevron-right"></i> (-) DEDUÇÕES DA RECEITA BRUTA</td>
-                            <td><span class="badge-cat">Impostos / Retenções</span></td>
-                            <td class="text-right" style="color: var(--accent-orange);">-R$ 0,00</td>
-                        </tr>
-                        <tr class="row-sub sub-deducoes">
-                            <td style="padding-left: 30px;">• Sem deduções registradas no período</td>
-                            <td><span class="badge-sub">Impostos</span></td>
-                            <td class="text-right">R$ 0,00</td>
-                        </tr>
-
-                        <!-- BLOCO 3: RECEITA LÍQUIDA -->
-                        <tr class="row-total">
-                            <td>(=) RECEITA OPERACIONAL LÍQUIDA</td>
-                            <td>Receita Efetiva</td>
-                            <td class="text-right val-rec-liquida">{rec_fmt}</td>
-                        </tr>
-
-                        <!-- BLOCO 4: CUSTOS OPERACIONAIS -->
-                        <tr class="row-group" onclick="toggleRow('sub-custos')">
-                            <td><i class="fa-solid fa-chevron-right"></i> (-) CUSTOS OPERACIONAIS DA FROTA</td>
-                            <td><span class="badge-cat">Custos Diretos</span></td>
-                            <td class="text-right val-custos-total" style="color: #f87171;">-{desp_fmt}</td>
-                        </tr>"""
-
-sub_mapping = [
-    ('Combustível (Diesel)', 'detail-diesel', 'val-sub-diesel', 'Combustível'),
-    ('Manutenção', 'detail-manut', 'val-sub-manut', 'Manutenção'),
-    ('Pedágio', 'detail-pedagio', 'val-sub-pedagio', 'Pedágio'),
-    ('Seguros', 'detail-seguros', 'val-sub-seguros', 'Seguros'),
-    ('IPVA / Lic. / Multas', 'detail-encargos', 'val-sub-encargos', 'Encargos / Leis'),
-    ('Outros Custos', 'detail-outros', 'val-sub-outros', 'Outros')
-]
-
-for cat_nome, class_detalhe, class_subval, badge_nome in sub_mapping:
-    dados_cat = despesas_por_cat[cat_nome]
-    sub_tot_fmt = fmt_brl(dados_cat['total'])
-    
-    html_linhas_tabela += f"""
-                        <tr class="row-sub sub-custos" onclick="toggleRow('{class_detalhe}')">
-                            <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • {cat_nome}</td>
-                            <td><span class="badge-sub">{badge_nome}</span></td>
-                            <td class="text-right {class_subval}">{sub_tot_fmt}</td>
-                        </tr>"""
-    
-    if dados_cat['linhas']:
-        for l in dados_cat['linhas']:
+    if lista_detalhes_receitas:
+        for item in lista_detalhes_receitas:
             html_linhas_tabela += f"""
-                        <tr class="row-detail {class_detalhe}" data-mes="{l['mes']}" data-valor="{l['valor']}">
-                            <td style="padding-left: 50px;">
-                                <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>{l['data']}</strong> • N° {l['nr_unico']} • Placa: <strong>{l['placa']}</strong> • <strong>{l['parceiro']}</strong>
-                            </td>
-                            <td><span class="badge-sub">{l['natureza']}</span></td>
-                            <td class="text-right" style="color: #f87171; font-weight: 600;">{fmt_brl(l['valor'])}</td>
-                        </tr>"""
+                            <tr class="row-detail detail-frete" data-mes="{item['mes']}" data-valor="{item['valor']}">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>{item['data']}</strong> • N° {item['nr_unico']} • Placa: <strong>{item['placa']}</strong> • <strong>{item['parceiro']}</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">{fmt_brl(item['valor'])}</td>
+                            </tr>"""
     else:
         html_linhas_tabela += f"""
-                        <tr class="row-detail {class_detalhe}" data-mes="01" data-valor="0">
-                            <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
-                        </tr>"""
+                            <tr class="row-detail detail-frete" data-mes="01" data-valor="0">
+                                <td style="padding-left: 50px;" colspan="3">Nenhuma receita registada no período.</td>
+                            </tr>"""
 
-html_linhas_tabela += f"""
-                        <!-- BLOCO 5: RESULTADO -->
-                        <tr class="row-total">
-                            <td>(=) RESULTADO / LUCRO LÍQUIDO DO EXERCÍCIO</td>
-                            <td>Resultado Final DRE</td>
-                            <td class="text-right val-resultado-liquido" style="color: {'#f87171' if resultado_liquido < 0 else 'var(--accent-purple);'};">{res_fmt}</td>
-                        </tr>"""
+    html_linhas_tabela += f"""
+                            <!-- BLOCO 2: DEDUÇÕES -->
+                            <tr class="row-group" onclick="toggleRow('sub-deducoes')">
+                                <td><i class="fa-solid fa-chevron-right"></i> (-) DEDUÇÕES DA RECEITA BRUTA</td>
+                                <td><span class="badge-cat">Impostos / Retenções</span></td>
+                                <td class="text-right" style="color: var(--accent-orange);">-R$ 0,00</td>
+                            </tr>
+                            <tr class="row-sub sub-deducoes">
+                                <td style="padding-left: 30px;">• Sem deduções registradas no período</td>
+                                <td><span class="badge-sub">Impostos</span></td>
+                                <td class="text-right">R$ 0,00</td>
+                            </tr>
 
-html_final = re.sub(r'<tbody>.*?<\/tbody>', f"<tbody>{html_linhas_tabela}\n                    </tbody>", html_final, flags=re.DOTALL)
+                            <!-- BLOCO 3: RECEITA LÍQUIDA -->
+                            <tr class="row-total">
+                                <td>(=) RECEITA OPERACIONAL LÍQUIDA</td>
+                                <td>Receita Efetiva</td>
+                                <td class="text-right val-rec-liquida">{rec_fmt}</td>
+                            </tr>
 
-caminho_index = os.path.abspath("index.html")
-with open(caminho_index, 'w', encoding='utf-8') as f:
-    f.write(html_final)
+                            <!-- BLOCO 4: CUSTOS OPERACIONAIS -->
+                            <tr class="row-group" onclick="toggleRow('sub-custos')">
+                                <td><i class="fa-solid fa-chevron-right"></i> (-) CUSTOS OPERACIONAIS DA FROTA</td>
+                                <td><span class="badge-cat">Custos Diretos</span></td>
+                                <td class="text-right val-custos-total" style="color: #f87171;">-{desp_fmt}</td>
+                            </tr>"""
 
-print(f"📍 O ficheiro index.html foi ATUALIZADO com sucesso em: {caminho_index}")
-print(f"🚛 Sucesso Total! Versão 8.32 executada com injeção direta na rosca.")
+    sub_mapping = [
+        ('Combustível (Diesel)', 'detail-diesel', 'val-sub-diesel', 'Combustível'),
+        ('Manutenção', 'detail-manut', 'val-sub-manut', 'Manutenção'),
+        ('Pedágio', 'detail-pedagio', 'val-sub-pedagio', 'Pedágio'),
+        ('Seguros', 'detail-seguros', 'val-sub-seguros', 'Seguros'),
+        ('IPVA / Lic. / Multas', 'detail-encargos', 'val-sub-encargos', 'Encargos / Leis'),
+        ('Outros Custos', 'detail-outros', 'val-sub-outros', 'Outros')
+    ]
 
+    for cat_nome, class_detalhe, class_subval, badge_nome in sub_mapping:
+        dados_cat = despesas_por_cat[cat_nome]
+        sub_tot_fmt = fmt_brl(dados_cat['total'])
+        
+        html_linhas_tabela += f"""
+                            <tr class="row-sub sub-custos" onclick="toggleRow('{class_detalhe}')">
+                                <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • {cat_nome}</td>
+                                <td><span class="badge-sub">{badge_nome}</span></td>
+                                <td class="text-right {class_subval}">{sub_tot_fmt}</td>
+                            </tr>"""
+        
+        if dados_cat['linhas']:
+            for l in dados_cat['linhas']:
+                html_linhas_tabela += f"""
+                            <tr class="row-detail {class_detalhe}" data-mes="{l['mes']}" data-valor="{l['valor']}">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>{l['data']}</strong> • N° {l['nr_unico']} • Placa: <strong>{l['placa']}</strong> • <strong>{l['parceiro']}</strong>
+                                </td>
+                                <td><span class="badge-sub">{l['natureza']}</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">{fmt_brl(l['valor'])}</td>
+                            </tr>"""
+        else:
+            html_linhas_tabela += f"""
+                            <tr class="row-detail {class_detalhe}" data-mes="01" data-valor="0">
+                                <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
+                            </tr>"""
 
+    html_linhas_tabela += f"""
+                            <!-- BLOCO 5: RESULTADO -->
+                            <tr class="row-total">
+                                <td>(=) RESULTADO / LUCRO LÍQUIDO DO EXERCÍCIO</td>
+                                <td>Resultado Final DRE</td>
+                                <td class="text-right val-resultado-liquido" style="color: {'#f87171' if resultado_liquido < 0 else 'var(--accent-purple);'};">{res_fmt}</td>
+                            </tr>"""
 
+    html_final = re.sub(r'<tbody>.*?<\/tbody>', f"<tbody>{html_linhas_tabela}\n                    </tbody>", html_final, flags=re.DOTALL)
 
+    caminho_index = os.path.abspath("index.html")
+    try:
+        with open(caminho_index, 'w', encoding='utf-8') as f:
+            f.write(html_final)
+        registar_log("SUCESSO", f"Dashboard gerado com exito em: {caminho_index}")
+    except Exception as e:
+        registar_log("ERRO_CRITICO", f"Falha ao gravar o ficheiro index.html: {str(e)}")
+        sys.exit(1)
 
+    print(f"📍 O ficheiro index.html foi ATUALIZADO com sucesso!")
 
+if __name__ == "__main__":
+    main()
 
+    
 
 
 

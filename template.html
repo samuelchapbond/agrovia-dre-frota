@@ -97,16 +97,20 @@
         .filter-actions { font-size: 11px; color: var(--accent-blue); cursor: pointer; text-decoration: underline; font-weight: 600; }
         .filter-actions:hover { color: var(--accent-purple); }
 
-        table.dre-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        table.dre-table { width: 100%; min-width: 600px; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed; }
         table.dre-table th, table.dre-table td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
         table.dre-table th { background-color: rgba(19, 44, 34, 0.95); color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        table.dre-table th:nth-child(1) { width: 55%; }
+        table.dre-table th:nth-child(2) { width: 20%; }
+        table.dre-table th:nth-child(3) { width: 25%; }
+        table.dre-table .text-right { white-space: nowrap; }
         table.dre-table tr:hover { background-color: rgba(46, 204, 113, 0.05); }
         
         .row-group { font-weight: 700; background-color: rgba(27, 77, 62, 0.4); color: var(--text-primary); cursor: pointer; }
-        .row-group:hover { background-color: rgba(27, 77, 62, 0.7); }
+        table.dre-table tr.row-group:hover { background-color: rgba(27, 77, 62, 0.7); }
         .row-sub { display: none; background-color: rgba(19, 44, 34, 0.6); cursor: pointer; }
         .row-sub.open { display: table-row; }
-        .row-sub:hover { background-color: rgba(46, 204, 113, 0.1); }
+        table.dre-table tr.row-sub:hover { background-color: rgba(46, 204, 113, 0.1); }
         .row-detail { display: none; background-color: rgba(10, 23, 17, 0.95); font-size: 12px; color: var(--text-secondary); }
         .row-detail.open { display: table-row; }
         .row-total { font-weight: 800; background-color: rgba(163, 230, 53, 0.1); color: var(--accent-purple); border-top: 2px solid var(--accent-purple); }
