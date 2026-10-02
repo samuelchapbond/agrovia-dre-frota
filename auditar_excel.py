@@ -1,6 +1,7 @@
 import pandas as pd
-import glob
 import unicodedata
+
+from fontes_dados import listar_ficheiros_fonte
 
 def limpar_texto(texto):
     if pd.isna(texto):
@@ -20,7 +21,7 @@ def carregar_excel_inteligente(caminho_arquivo):
             continue
     return pd.read_excel(caminho_arquivo)
 
-arquivos = glob.glob("Banco_de_Dados/*.xlsx")
+arquivos = listar_ficheiros_fonte()
 for arq in arquivos:
     print(f"\n📂 A auditar o ficheiro com o Motor Inteligente: {arq}")
     df = carregar_excel_inteligente(arq)

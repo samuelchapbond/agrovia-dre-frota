@@ -3,10 +3,11 @@ import datetime
 import unicodedata
 import os
 import shutil
-import glob
 import json
 import sys
 import re
+
+from fontes_dados import escrever_inventario
 
 VERSAO_ATUAL = "v8.36-RobustAuditEngine"
 
@@ -29,12 +30,28 @@ os.makedirs("relatorios_auditoria", exist_ok=True)
 
 PLACA_FROTA_PRINCIPAL = "OOM9749"
 
+CAMINHO_LOG = os.path.join("relatorios_auditoria", "log_execucao.txt")
+CAMINHO_LOG_HISTORICO = os.path.join("backup_relatorios", "log_execucao_historico.txt")
+
+def iniciar_log_execucao():
+    """log_execucao.txt guarda só a execução atual; as anteriores vão para o histórico."""
+    if not os.path.exists(CAMINHO_LOG):
+        return
+    try:
+        with open(CAMINHO_LOG, "r", encoding="utf-8") as origem:
+            conteudo_anterior = origem.read()
+        if conteudo_anterior:
+            with open(CAMINHO_LOG_HISTORICO, "a", encoding="utf-8") as historico:
+                historico.write(conteudo_anterior)
+        open(CAMINHO_LOG, "w", encoding="utf-8").close()
+    except Exception as exc:
+        print(f"[AVISO] Falha ao arquivar o log anterior: {exc}", file=sys.stderr)
+
 def registar_log(status, mensagem):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     linha_log = f"[{timestamp}] [{status}] {mensagem}\n"
-    caminho_log = os.path.join("relatorios_auditoria", "log_execucao.txt")
     try:
-        with open(caminho_log, "a", encoding="utf-8") as f:
+        with open(CAMINHO_LOG, "a", encoding="utf-8") as f:
             f.write(linha_log)
     except Exception:
         pass
@@ -73,29 +90,6 @@ def extrair_placa_do_texto(texto):
     if match:
         return match.group(1).replace("-", "")
     return None
-
-def ficheiro_excel_valido(caminho: str) -> bool:
-    nome = os.path.basename(caminho)
-    nome_l = nome.lower()
-    if not nome_l.endswith((".xlsx", ".xls")):
-        return False
-    if nome.startswith("~$") or nome.startswith("~"):
-        return False
-    if "copia" in limpar_texto(nome_l):
-        return False
-    return True
-
-def listar_ficheiros_fonte() -> list:
-    candidatos = [
-        f for f in glob.glob(os.path.join("Banco_de_Dados", "*.*"))
-        if ficheiro_excel_valido(f)
-    ]
-    # Mesma seleção do auditor; os extratos "Financeiro" (período completo) vêm primeiro
-    # para prevalecerem na deduplicação por Nro Único.
-    return sorted(
-        candidatos,
-        key=lambda f: ("financeiro" not in limpar_texto(os.path.basename(f)).lower(), os.path.basename(f).lower())
-    )
 
 def remover_duplicados_entre_ficheiros(df: pd.DataFrame, col_nr_unico) -> pd.DataFrame:
     if not col_nr_unico or col_nr_unico not in df.columns:
@@ -174,9 +168,11 @@ def main():
     print(f" 🚀 AGROVIA - MOTOR DE GESTÃO DE CUSTO DE FROTA [{VERSAO_ATUAL}]")
     print("="*80)
     
+    iniciar_log_execucao()
     registar_log("INFO", f"Início da execução do motor [{VERSAO_ATUAL}].")
 
-    todos_arquivos = listar_ficheiros_fonte()
+    todos_arquivos = escrever_inventario("atualizar_dashboard.py")
+    registar_log("INFO", f"Fontes atuais em Banco_de_Dados: {[os.path.basename(f) for f in todos_arquivos]}")
 
     if not todos_arquivos:
         registar_log("ERRO_CRITICO", "Nenhum ficheiro Excel válido encontrado na pasta Banco_de_Dados.")
