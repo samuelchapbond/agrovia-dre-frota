@@ -1,3 +1,22 @@
-*.gsheet 
-*.gdoc 
-teste/ 
+*.gsheet
+*.gdoc
+teste/
+
+# Google Drive / Windows
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+
+# Locks temporários do Excel
+~$*
+
+# Dados financeiros do Sankhya (não publicar)
+Banco_de_Dados/*.xls
+Banco_de_Dados/*.xlsx
+
+# Saídas regeneradas a cada execução
+relatorios_auditoria/log_execucao.txt
+relatorios_auditoria/inventario_fontes.txt
+backup_relatorios/log_execucao_historico.txt
