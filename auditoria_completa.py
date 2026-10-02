@@ -152,11 +152,53 @@ def classificar_categoria_despesa(natureza, historico):
     else:
         return 'Outros Custos'
 
+CAMINHO_VEREDITO = os.path.join("relatorios_auditoria", "veredito_publicacao.txt")
+
+def mes_referencia(data_raw):
+    """Ano-mês (AAAA-MM) com o mesmo parse de datas do atualizar_dashboard.py."""
+    dt = pd.to_datetime(data_raw, errors='coerce')
+    return None if pd.isna(dt) else dt.strftime('%Y-%m')
+
+def descrever_periodo(meses):
+    if not meses:
+        return "sem lançamentos"
+    return f"{min(meses)} a {max(meses)} ({len(meses)} meses com lançamentos: {', '.join(sorted(meses))})"
+
+def emitir_veredito(falhas, meses_receita, meses_custos):
+    linhas = [
+        "VEREDITO DE PUBLICAÇÃO - auditoria_completa.py",
+        f"Gerado em: {pd.Timestamp.now():%Y-%m-%d %H:%M:%S}",
+        f"Frota principal: {PLACA_FROTA_PRINCIPAL}",
+        f"Período da receita: {descrever_periodo(meses_receita)}",
+        f"Período dos custos: {descrever_periodo(meses_custos)}",
+    ]
+    if falhas:
+        linhas.append("RESULTADO: BLOQUEADO")
+        linhas += [f"  - {f}" for f in falhas]
+    else:
+        linhas.append("RESULTADO: APROVADO")
+
+    print("\n" + "="*145)
+    print(" 🛡️  VEREDITO DE PUBLICAÇÃO")
+    print("="*145)
+    for linha in linhas[2:]:
+        print(f" {linha}")
+    print("="*145)
+
+    os.makedirs(os.path.dirname(CAMINHO_VEREDITO), exist_ok=True)
+    with open(CAMINHO_VEREDITO, "w", encoding="utf-8") as f:
+        f.write("\n".join(linhas) + "\n")
+
 arquivos = escrever_inventario("auditoria_completa.py")
 excel_files = arquivos
 
+falhas_auditoria = []
+meses_receita = set()
+meses_custos = set()
+
 if not excel_files:
     print("\n❌ [ERRO] Nenhum ficheiro Excel encontrado dentro da pasta 'Banco_de_Dados'.")
+    falhas_auditoria.append("Nenhum ficheiro Excel válido em Banco_de_Dados.")
 else:
     for arq in excel_files:
         print(f"\n📂 Ficheiro em análise: {arq}")
@@ -294,11 +336,16 @@ else:
                 'nr_unico': nr_u, 'data': data_str, 'placa': placa_exibicao, 'valor': val, 'parceiro': parceiro, 'operador': operador, 'historico': hist_reduzido
             }
 
+            mes_ref = mes_referencia(data_raw)
             if val > 0:
                 transacoes_por_categoria['Receita Bruta'].append(item)
+                if mes_ref:
+                    meses_receita.add(mes_ref)
             else:
                 cat = classificar_categoria_despesa(nat, hist_raw)
                 transacoes_por_categoria[cat].append(item)
+                if mes_ref:
+                    meses_custos.add(mes_ref)
 
         print(f"\n📊 [1] RESUMO FINANCEIRO E CONSOLIDAÇÃO (FROTA PRINCIPAL: {PLACA_FROTA_PRINCIPAL})")
         print(f"   * Linhas de lixo/rodapé/zero ignoradas: {linhas_ignoradas_lixo}")
@@ -347,17 +394,19 @@ else:
             print(" ✅ [OK] Nenhum lançamento de outro veículo detetado fora da frota principal.")
             print("="*145)
 
+if excel_files:
+    if not meses_receita:
+        falhas_auditoria.append("Nenhuma receita da frota principal com data válida.")
+    if not meses_custos:
+        falhas_auditoria.append("Nenhum custo da frota principal com data válida.")
+    if meses_receita and meses_custos:
+        periodo_receita = (min(meses_receita), max(meses_receita))
+        periodo_custos = (min(meses_custos), max(meses_custos))
+        if periodo_receita != periodo_custos:
+            falhas_auditoria.append(
+                f"Período da receita ({periodo_receita[0]} a {periodo_receita[1]}) diferente do período dos custos "
+                f"({periodo_custos[0]} a {periodo_custos[1]})."
+            )
 
-
-            
-
-
-
-                        
-
-
-
-
-
-
-
+emitir_veredito(falhas_auditoria, meses_receita, meses_custos)
+sys.exit(1 if falhas_auditoria else 0)

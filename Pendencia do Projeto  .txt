@@ -20,9 +20,29 @@ A IA atua como **Arquiteta de Software, Engenheira de Front-End e Auditora de Da
 * **Assinatura e Credenciamento Técnico:** Inserção oficial do rodapé e cabeçalho identificando a Gestão e Auditoria Técnica de Samuel O Silva.
 
 ## 4. O Que Falta Fazer (Próximos Passos)
-* **Automatização de Carga (ETL/BAT):** Implementação de scripts em Python ou arquivos `.bat` na máquina local para automatizar a leitura dos relatórios exportados do Sankhya e popular o painel sem intervenção manual.
-* **Expansão Multiveículos:** Ampliação das regras de negócio para suportar múltiplos conjuntos de carretas, caminhões e veículos de apoio de forma segregada.
-* **Deploy e Homologação Final:** Publicação definitiva da versão homologada na pasta de produção do Google Drive da Agrovia.
+* **Automatização de Carga (ETL/BAT):** Implementação de scripts em Python ou arquivos `.bat` na máquina local para automatizar a leitura dos relatórios exportados do Sankhya e popular o painel sem intervenção manual. → **QUASE CONCLUÍDA** (ver 4.1).
+* **Expansão Multiveículos:** Ampliação das regras de negócio para suportar múltiplos conjuntos de carretas, caminhões e veículos de apoio de forma segregada. → **NÃO INICIADA** (ver 4.2).
+* **Deploy e Homologação Final:** Publicação definitiva da versão homologada na pasta de produção do Google Drive da Agrovia. → **AGUARDA etapas 1 e 2.**
+
+### 4.1 Pendências para fechar a Etapa 1 (ETL/BAT) — atualizado em 02/10/2026
+Já feito nesta etapa: motor `atualizar_dashboard.py`, `atualizar.bat` com publicação no GitHub, auditor `auditoria_completa.py`, trava de fontes `fontes_dados.py` (só conta o que está hoje em `Banco_de_Dados/`), `.gitignore` sem dados financeiros.
+
+1. [ ] **Proteger o `.env` (chave da API):** o `.env` ainda NÃO está no `.gitignore`; um `git add .` publicaria a chave. Apagar também o ficheiro solto `.gitignoregit`.
+2. [ ] **KPIs sem fonte no painel:**
+   - CPK (R$ 1,64) usa `KM_TOTAL_PERIODO = 52000.0` fixo no código (`atualizar_dashboard.py`, linha 343).
+   - Consumo Médio (1,41 Km/L) é valor fixo do template; o motor não o calcula.
+   - Não há fonte de km nem de litros em `Banco_de_Dados/`. Mostrar "sem dado" até existir essa fonte.
+3. [ ] **Fechar o período dos dados:** o veredito de publicação (`relatorios_auditoria/veredito_publicacao.txt`, 02/10/2026 17:17) está **BLOQUEADO**: receita de 2026-01 a 2026-09 e custos de 2026-01 a 2027-01. Os custos vêm só de `mes01-2026.xlsx`; falta a exportação de custos do Sankhya do mesmo período da receita, e definir a regra de data dos custos (baixa / vencimento / emissão).
+4. [~] **Trava de publicação no `.bat`:** implementada (corre `auditoria_completa.py` e bloqueia o push se falhar ou se os períodos divergirem), mas `atualizar.bat` e `auditoria_completa.py` ainda não foram commitados.
+5. [ ] **`agente_controller.py` (agente IA Gemini/LangGraph):**
+   - Lê só `Banco_de_Dados/mes01-2026.xlsx` (caminho fixo) e envia só as primeiras 50 linhas (`head(50)`) ao modelo. Passar a usar `listar_ficheiros_fonte()` de `fontes_dados.py`.
+   - Confirmar que o modelo `gemini-3.8-flash` responde (a execução anterior falhou com erro 404 no `gemini-2.5-flash`).
+   - Decidir se `agente_controller.py`, `requirements.txt` e `tradutor.py` entram no git.
+
+### 4.2 Etapa 2 (Multiveículos) — ponto de partida
+* Hoje o motor só conhece a placa `OOM9749` (`PLACA_FROTA_PRINCIPAL`); lançamentos de outras placas são excluídos como "outros veículos".
+* Criar cadastro de conjuntos (cavalo + carretas) e gerar uma DRE por conjunto.
+* **Regras que o SAMUEL precisa definir:** lista de conjuntos/placas e como ratear custos sem placa.
 
 ## 5. Melhorias Futuras Recomendadas
 * **Métricas Preditivas de Manutenção:** Utilizar dados históricos de quilometragem para prever a vida útil de pneus e peças, alertando sobre custos futuros antes que ocorram.

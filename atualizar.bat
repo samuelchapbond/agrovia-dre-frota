@@ -6,7 +6,7 @@ echo ====================================================================
 echo   AGROVIA - MOTOR DE GESTAO DE CUSTO DE FROTA (v8.32 Cloud Auto)
 echo ====================================================================
 echo.
-echo [1/3] A executar o motor Python e a processar os dados do Sankhya...
+echo [1/4] A executar o motor Python e a processar os dados do Sankhya...
 python atualizar_dashboard.py
 
 if errorlevel 1 (
@@ -17,11 +17,28 @@ if errorlevel 1 (
     echo ====================================================================
     echo.
     pause
-    exit /b
+    exit /b 1
 )
 
 echo.
-echo [2/3] A sincronizar e a enviar a nova versao para a nuvem (GitHub)...
+echo [2/4] A executar o auditor antes de publicar...
+python auditoria_completa.py
+
+if errorlevel 1 (
+    echo.
+    echo ====================================================================
+    echo [X] PUBLICACAO BLOQUEADA: a auditoria falhou ou o periodo da receita
+    echo     e diferente do periodo dos custos. Nada foi enviado para o GitHub.
+    echo Motivos em: relatorios_auditoria\veredito_publicacao.txt
+    echo O index.html local NAO esta auditado e nao deve ser commitado a mao.
+    echo ====================================================================
+    echo.
+    pause
+    exit /b 1
+)
+
+echo.
+echo [3/4] A sincronizar e a enviar a nova versao para a nuvem (GitHub)...
 git add index.html
 git commit -m "Auto-update DRE Agrovia: %date% %time%"
 git push origin main
@@ -34,12 +51,12 @@ if errorlevel 1 (
     echo ====================================================================
     echo.
     pause
-    exit /b
+    exit /b 1
 )
 
 echo.
 echo ====================================================================
-echo [3/3] Sincronizacao concluida com exito! A abrir o painel local...
+echo [4/4] Sincronizacao concluida com exito! A abrir o painel local...
 echo ====================================================================
 echo.
 

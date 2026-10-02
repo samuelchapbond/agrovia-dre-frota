@@ -18,6 +18,11 @@ def _normalizar(texto: str) -> str:
     return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
+def eh_abastecimento(nome: str) -> bool:
+    """Relatórios de abastecimento (km/litros) têm 'abastec' no nome e não entram na DRE financeira."""
+    return "abastec" in _normalizar(nome)
+
+
 def motivo_exclusao(nome: str):
     """Devolve o motivo pelo qual o ficheiro é ignorado, ou None se for fonte válida."""
     nome_l = nome.lower()
@@ -45,14 +50,27 @@ def listar_ficheiros_fonte() -> list:
     Os extratos "Financeiro" (período completo) vêm primeiro para prevalecerem
     na deduplicação por Nro Único.
     """
-    validos = [n for n in _ficheiros_na_pasta() if motivo_exclusao(n) is None]
+    validos = [
+        n for n in _ficheiros_na_pasta()
+        if motivo_exclusao(n) is None and not eh_abastecimento(n)
+    ]
     validos.sort(key=lambda n: ("financeiro" not in _normalizar(n), n.lower()))
+    return [os.path.join(PASTA_DADOS, n) for n in validos]
+
+
+def listar_ficheiros_abastecimento() -> list:
+    """Caminhos absolutos dos relatórios de abastecimento válidos em Banco_de_Dados."""
+    validos = [
+        n for n in _ficheiros_na_pasta()
+        if motivo_exclusao(n) is None and eh_abastecimento(n)
+    ]
     return [os.path.join(PASTA_DADOS, n) for n in validos]
 
 
 def escrever_inventario(script: str) -> list:
     """Regrava o inventário com o conteúdo atual de Banco_de_Dados e devolve as fontes válidas."""
     fontes = listar_ficheiros_fonte()
+    abastecimento = listar_ficheiros_abastecimento()
     ignorados = [
         (n, motivo_exclusao(n)) for n in _ficheiros_na_pasta() if motivo_exclusao(n) is not None
     ]
@@ -71,6 +89,9 @@ def escrever_inventario(script: str) -> list:
         linhas.append(f"  - {os.path.basename(caminho)} | {st.st_size} bytes | modificado {modificado:%Y-%m-%d %H:%M:%S}")
     if not fontes:
         linhas.append("  (nenhuma)")
+
+    linhas += ["", f"FONTES OPERACIONAIS - ABASTECIMENTO / KM ({len(abastecimento)}):"]
+    linhas += [f"  - {os.path.basename(c)}" for c in abastecimento] or ["  (nenhuma: CPK e Km/L ficam 'Sem dado')"]
 
     linhas += ["", f"IGNORADOS ({len(ignorados)}):"]
     linhas += [f"  - {n} | {motivo}" for n, motivo in ignorados] or ["  (nenhum)"]

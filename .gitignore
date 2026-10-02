@@ -9,6 +9,9 @@ desktop.ini
 __pycache__/
 *.pyc
 
+# Segredos (chaves de API)
+.env
+
 # Locks temporários do Excel
 ~$*
 

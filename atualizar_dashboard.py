@@ -7,7 +7,7 @@ import json
 import sys
 import re
 
-from fontes_dados import escrever_inventario
+from fontes_dados import escrever_inventario, listar_ficheiros_abastecimento
 
 VERSAO_ATUAL = "v8.36-RobustAuditEngine"
 
@@ -162,6 +162,94 @@ def classificar_categoria_despesa(natureza, historico):
         return ('IPVA / Lic. / Multas', 'detail-encargos', 'Encargos e Licenciamento')
     else:
         return ('Outros Custos', 'detail-outros', 'Outros Custos Operacionais')
+
+COLUNAS_HODOMETRO = ['Hodômetro', 'Hodometro', 'Odômetro', 'Odometro', 'KM Atual', 'Km Atual', 'Quilometragem', 'KM']
+COLUNAS_LITROS = ['Litros', 'Qtd. Litros', 'Quantidade', 'Qtde', 'Qtd', 'Volume']
+
+def carregar_abastecimento(caminho_arquivo):
+    """Lê um relatório de abastecimento; devolve (df, col_placa, col_data, col_hodometro, col_litros) ou None."""
+    for linha_cabecalho in range(0, 6):
+        try:
+            df = pd.read_excel(caminho_arquivo, header=linha_cabecalho)
+        except Exception:
+            continue
+        col_hod = encontrar_coluna(df, COLUNAS_HODOMETRO)
+        col_lit = encontrar_coluna(df, COLUNAS_LITROS)
+        if col_hod and col_lit:
+            col_placa = encontrar_coluna(df, ['Placa', 'Marca [Placa]', 'Veículo', 'Veiculo', 'Frota'])
+            col_data = encontrar_coluna(df, ['Data Abastecimento', 'Dt. Abastecimento', 'Data', 'Dt.'])
+            return df, col_placa, col_data, col_hod, col_lit
+    return None
+
+def apurar_km_litros(placa):
+    """Km rodado e litros da placa a partir dos relatórios de abastecimento.
+
+    Km rodado = hodómetro máximo - hodómetro mínimo no período.
+    Litros para Km/L = soma dos litros sem o 1.º abastecimento (método tanque cheio:
+    esse combustível foi gasto antes do primeiro hodómetro registado).
+    Devolve (km_rodado, litros_total, litros_consumo) ou (None, None, None) sem fonte válida.
+    """
+    arquivos = listar_ficheiros_abastecimento()
+    if not arquivos:
+        registar_log("PENDENTE", "Sem relatório de abastecimento em Banco_de_Dados: CPK e Km/L = 'Sem dado'.")
+        return None, None, None
+
+    partes = []
+    for arq in arquivos:
+        nome = os.path.basename(arq)
+        lido = carregar_abastecimento(arq)
+        if lido is None:
+            registar_log("AVISO", f"Abastecimento {nome}: colunas de hodómetro/litros não encontradas; ignorado.")
+            continue
+        df, col_placa, col_data, col_hod, col_lit = lido
+        if not col_placa:
+            registar_log("AVISO", f"Abastecimento {nome}: sem coluna de placa; ignorado para não misturar veículos.")
+            continue
+        registar_log("INFO", f"Abastecimento {nome}: placa='{col_placa}', data='{col_data}', hodómetro='{col_hod}', litros='{col_lit}'.")
+        placas = df[col_placa].map(celula_texto).map(lambda t: extrair_placa_do_texto(t) or t.upper())
+        sub = pd.DataFrame({
+            'origem': nome,
+            'data': pd.to_datetime(df[col_data], errors='coerce', dayfirst=True) if col_data else pd.NaT,
+            'hodometro': pd.to_numeric(df[col_hod], errors='coerce'),
+            'litros': pd.to_numeric(df[col_lit], errors='coerce'),
+        })[placas.str.contains(placa, na=False)]
+        partes.append(sub)
+
+    if not partes:
+        registar_log("PENDENTE", "Nenhum relatório de abastecimento utilizável: CPK e Km/L = 'Sem dado'.")
+        return None, None, None
+
+    abast = pd.concat(partes, ignore_index=True)
+    invalidas = abast['hodometro'].isna() | (abast['hodometro'] <= 0) | abast['litros'].isna() | (abast['litros'] <= 0)
+    if invalidas.any():
+        registar_log("AVISO", f"Abastecimento {placa}: {int(invalidas.sum())} linhas sem hodómetro/litros válidos descartadas.")
+    abast = abast[~invalidas].drop_duplicates(subset=['data', 'hodometro', 'litros'])
+
+    if len(abast) < 2:
+        registar_log("PENDENTE", f"Abastecimento {placa}: menos de 2 registos válidos; CPK e Km/L = 'Sem dado'.")
+        return None, None, None
+
+    ordem = ['data', 'hodometro'] if abast['data'].notna().all() else ['hodometro']
+    abast = abast.sort_values(ordem).reset_index(drop=True)
+    recuos = int((abast['hodometro'].diff() < 0).sum())
+    if recuos:
+        registar_log("AVISO", f"Abastecimento {placa}: hodómetro recua {recuos} vez(es) na ordem cronológica; validar a fonte.")
+
+    km_rodado = float(abast['hodometro'].max() - abast['hodometro'].min())
+    litros_total = float(abast['litros'].sum())
+    litros_consumo = float(abast.sort_values('hodometro')['litros'].iloc[1:].sum())
+    periodo = ""
+    if abast['data'].notna().any():
+        periodo = f" | período {abast['data'].min():%d/%m/%Y} a {abast['data'].max():%d/%m/%Y}"
+    registar_log(
+        "INFO",
+        f"Abastecimento {placa}: {len(abast)} registos | hodómetro {abast['hodometro'].min():.0f} a "
+        f"{abast['hodometro'].max():.0f} | km rodado {km_rodado:.0f} | litros {litros_total:.2f} "
+        f"(consumo {litros_consumo:.2f}){periodo}"
+    )
+    if km_rodado <= 0:
+        return None, None, None
+    return km_rodado, litros_total, litros_consumo
 
 def main():
     print("="*80)
@@ -340,8 +428,9 @@ def main():
                 'data': row['data_str'], 'mes': f"{row['mes']:02d}", 'parceiro': row['parceiro'], 'natureza': row['natureza'], 'valor': val, 'nr_unico': row['nr_unico'], 'placa': row['placa']
             })
 
-        KM_TOTAL_PERIODO = 52000.0  
-        cpk_calculado = (total_despesa / KM_TOTAL_PERIODO) if KM_TOTAL_PERIODO > 0 else 0.0
+        km_rodado, _, litros_consumo = apurar_km_litros(PLACA_FROTA_PRINCIPAL)
+        cpk_calculado = (total_despesa / km_rodado) if km_rodado else None
+        km_por_litro = (km_rodado / litros_consumo) if km_rodado and litros_consumo else None
 
     except Exception as e:
         registar_log("ERRO_CRITICO", f"Erro crítico no processamento dos dados financeiros: {str(e)}")
@@ -368,7 +457,8 @@ def main():
     res_abs = fmt_brl(abs(resultado_liquido))
     res_fmt = f"R$ -{res_abs.replace('R$ ', '')}" if resultado_liquido < 0 else res_abs
     margem_fmt = f"{margem_liquida:.2f}%"
-    cpk_fmt = fmt_brl(cpk_calculado)
+    cpk_fmt = fmt_brl(cpk_calculado) if cpk_calculado is not None else "Sem dado"
+    consumo_fmt = f"{km_por_litro:.2f} Km/L".replace('.', ',') if km_por_litro is not None else "Sem dado"
 
     html_final = html_template
 
@@ -380,6 +470,7 @@ def main():
     html_final = re.sub(r'class="kpi-value kpi-resultado-liquido">[^<]+<', f'class="kpi-value kpi-resultado-liquido">{res_fmt}<', html_final)
     html_final = re.sub(r'class="kpi-value kpi-margem-liquida">[^<]+<', f'class="kpi-value kpi-margem-liquida">{margem_fmt}<', html_final)
     html_final = re.sub(r'class="kpi-value kpi-cpk">[^<]+<', f'class="kpi-value kpi-cpk">{cpk_fmt}<', html_final)
+    html_final = re.sub(r'class="kpi-value kpi-consumo">[^<]+<', f'class="kpi-value kpi-consumo">{consumo_fmt}<', html_final)
 
     str_rec_mes = json.dumps(receitas_por_mes[:8])
     str_desp_mes = json.dumps(despesas_por_mes[:8])
