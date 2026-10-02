@@ -97,16 +97,20 @@
         .filter-actions { font-size: 11px; color: var(--accent-blue); cursor: pointer; text-decoration: underline; font-weight: 600; }
         .filter-actions:hover { color: var(--accent-purple); }
 
-        table.dre-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        table.dre-table { width: 100%; min-width: 600px; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed; }
         table.dre-table th, table.dre-table td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
         table.dre-table th { background-color: rgba(19, 44, 34, 0.95); color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        table.dre-table th:nth-child(1) { width: 55%; }
+        table.dre-table th:nth-child(2) { width: 20%; }
+        table.dre-table th:nth-child(3) { width: 25%; }
+        table.dre-table .text-right { white-space: nowrap; }
         table.dre-table tr:hover { background-color: rgba(46, 204, 113, 0.05); }
         
         .row-group { font-weight: 700; background-color: rgba(27, 77, 62, 0.4); color: var(--text-primary); cursor: pointer; }
-        .row-group:hover { background-color: rgba(27, 77, 62, 0.7); }
+        table.dre-table tr.row-group:hover { background-color: rgba(27, 77, 62, 0.7); }
         .row-sub { display: none; background-color: rgba(19, 44, 34, 0.6); cursor: pointer; }
         .row-sub.open { display: table-row; }
-        .row-sub:hover { background-color: rgba(46, 204, 113, 0.1); }
+        table.dre-table tr.row-sub:hover { background-color: rgba(46, 204, 113, 0.1); }
         .row-detail { display: none; background-color: rgba(10, 23, 17, 0.95); font-size: 12px; color: var(--text-secondary); }
         .row-detail.open { display: table-row; }
         .row-total { font-weight: 800; background-color: rgba(163, 230, 53, 0.1); color: var(--accent-purple); border-top: 2px solid var(--accent-purple); }
@@ -141,7 +145,7 @@
     <header>
         <div>
             <h1>Agrovia - "Frota" - Gestão de Custo de Frota</h1>
-            <p>Atualizado em: 02/10/2026 às 14:11 | DRE Gerencial & Auditoria ERP</p>
+            <p>Atualizado em: 02/10/2026 às 16:17 | DRE Gerencial & Auditoria ERP</p>
             <div class="author-signature">Autor do Relatório: Samuel Oliveira Silva</div>
         </div>
         <div class="header-actions">
@@ -156,10 +160,10 @@
     <div id="defaultDashboardContent">
         <div class="grid-container">
             <div class="card kpi-card kpi-blue"><span class="kpi-title">Receita Bruta Total</span><div class="kpi-value kpi-receita-bruta">R$ 202.222,10</div></div>
-            <div class="card kpi-card kpi-pink"><span class="kpi-title">Custo Total da Frota</span><div class="kpi-value kpi-custo-total">R$ 0,00</div></div>
-            <div class="card kpi-card kpi-purple"><span class="kpi-title">Resultado Líquido</span><div class="kpi-value kpi-resultado-liquido">R$ R$ 202.222,10</div></div>
-            <div class="card kpi-card kpi-green"><span class="kpi-title">Margem Líquida</span><div class="kpi-value kpi-margem-liquida">100.00%</div></div>
-            <div class="card kpi-card kpi-yellow"><span class="kpi-title">CPK (Custo / KM)</span><div class="kpi-value kpi-cpk">R$ 0,00</div></div>
+            <div class="card kpi-card kpi-pink"><span class="kpi-title">Custo Total da Frota</span><div class="kpi-value kpi-custo-total">R$ 85.351,07</div></div>
+            <div class="card kpi-card kpi-purple"><span class="kpi-title">Resultado Líquido</span><div class="kpi-value kpi-resultado-liquido">R$ 116.871,03</div></div>
+            <div class="card kpi-card kpi-green"><span class="kpi-title">Margem Líquida</span><div class="kpi-value kpi-margem-liquida">57.79%</div></div>
+            <div class="card kpi-card kpi-yellow"><span class="kpi-title">CPK (Custo / KM)</span><div class="kpi-value kpi-cpk">R$ 1,64</div></div>
             <div class="card kpi-card kpi-orange"><span class="kpi-title">Consumo Médio (Km/L)</span><div class="kpi-value kpi-consumo">1.41 Km/L</div></div>
 
             <div class="card chart-main"><div class="card-title">Evolução Mensal: Receitas vs Custos da Frota</div><div class="chart-container"><canvas id="mainEvolutionChart"></canvas></div></div>
@@ -520,61 +524,323 @@
                             <tr class="row-group" onclick="toggleRow('sub-custos')">
                                 <td><i class="fa-solid fa-chevron-right"></i> (-) CUSTOS OPERACIONAIS DA FROTA</td>
                                 <td><span class="badge-cat">Custos Diretos</span></td>
-                                <td class="text-right val-custos-total" style="color: #f87171;">-R$ 0,00</td>
+                                <td class="text-right val-custos-total" style="color: #f87171;">-R$ 85.351,07</td>
                             </tr>
                             <tr class="row-sub sub-custos" onclick="toggleRow('detail-diesel')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Combustível (Diesel)</td>
                                 <td><span class="badge-sub">Combustível</span></td>
-                                <td class="text-right val-sub-diesel">R$ 0,00</td>
+                                <td class="text-right val-sub-diesel">R$ 11.983,08</td>
                             </tr>
-                            <tr class="row-detail detail-diesel" data-mes="01" data-valor="0">
-                                <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
+                            <tr class="row-detail detail-diesel" data-mes="01" data-valor="1133.71">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>21/01/2026</strong> • N° 1400287 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>POSTO ALDO</strong>
+                                </td>
+                                <td><span class="badge-sub">COMBUSTIVEL E LUBRIFICANTES CUSTO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.133,71</td>
+                            </tr>
+                            <tr class="row-detail detail-diesel" data-mes="02" data-valor="2923.8">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>09/02/2026</strong> • N° 1403681 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>MAHLE CARAMBEI</strong>
+                                </td>
+                                <td><span class="badge-sub">COMBUSTIVEL E LUBRIFICANTES CUSTO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 2.923,80</td>
+                            </tr>
+                            <tr class="row-detail detail-diesel" data-mes="01" data-valor="2969.41">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>22/01/2026</strong> • N° 1400468 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>AUTO POSTO DUQUE PRIMAVERA</strong>
+                                </td>
+                                <td><span class="badge-sub">COMBUSTIVEL E LUBRIFICANTES CUSTO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 2.969,41</td>
+                            </tr>
+                            <tr class="row-detail detail-diesel" data-mes="02" data-valor="4956.16">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>09/02/2026</strong> • N° 1406187 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>MAHLE 71 JATAI</strong>
+                                </td>
+                                <td><span class="badge-sub">COMBUSTIVEL E LUBRIFICANTES CUSTO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.956,16</td>
                             </tr>
                             <tr class="row-sub sub-custos" onclick="toggleRow('detail-manut')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Manutenção</td>
                                 <td><span class="badge-sub">Manutenção</span></td>
-                                <td class="text-right val-sub-manut">R$ 0,00</td>
+                                <td class="text-right val-sub-manut">R$ 9.846,84</td>
                             </tr>
-                            <tr class="row-detail detail-manut" data-mes="01" data-valor="0">
-                                <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
+                            <tr class="row-detail detail-manut" data-mes="02" data-valor="1440.8">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° 1410515 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.440,80</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="02" data-valor="224.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° 1410538 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 224,00</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="01" data-valor="160.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>19/01/2026</strong> • N° 1398502 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>AUTO PECAS SA</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 160,00</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="01" data-valor="5193.64">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/01/2026</strong> • N° 1396255 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>PACAEMBU AUTOPECAS CAMPO GRANDE</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 5.193,64</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="01" data-valor="960.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/01/2026</strong> • N° 1398940 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>DUTRA & DUTRA BORRACHARIA LTDA</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 960,00</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="01" data-valor="89.9">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/01/2026</strong> • N° 1398960 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>T4S TECNOLOGIA S.A.</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 89,90</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="02" data-valor="80.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412323 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 80,00</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="02" data-valor="320.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412331 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 320,00</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="02" data-valor="1200.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412339 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.200,00</td>
+                            </tr>
+                            <tr class="row-detail detail-manut" data-mes="02" data-valor="178.5">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412345 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                </td>
+                                <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 178,50</td>
                             </tr>
                             <tr class="row-sub sub-custos" onclick="toggleRow('detail-pedagio')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Pedágio</td>
                                 <td><span class="badge-sub">Pedágio</span></td>
-                                <td class="text-right val-sub-pedagio">R$ 0,00</td>
+                                <td class="text-right val-sub-pedagio">R$ 2.694,36</td>
                             </tr>
-                            <tr class="row-detail detail-pedagio" data-mes="01" data-valor="0">
-                                <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
+                            <tr class="row-detail detail-pedagio" data-mes="01" data-valor="2694.36">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/01/2026</strong> • N° 1395187 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>SEM PARAR</strong>
+                                </td>
+                                <td><span class="badge-sub">PEDAGIO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 2.694,36</td>
                             </tr>
                             <tr class="row-sub sub-custos" onclick="toggleRow('detail-seguros')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Seguros</td>
                                 <td><span class="badge-sub">Seguros</span></td>
-                                <td class="text-right val-sub-seguros">R$ 0,00</td>
+                                <td class="text-right val-sub-seguros">R$ 42.056,19</td>
                             </tr>
-                            <tr class="row-detail detail-seguros" data-mes="01" data-valor="0">
-                                <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
+                            <tr class="row-detail detail-seguros" data-mes="08" data-valor="4672.91">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>17/08/2026</strong> • N° 1516662 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                            </tr>
+                            <tr class="row-detail detail-seguros" data-mes="06" data-valor="4672.91">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>11/06/2026</strong> • N° 1516661 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                            </tr>
+                            <tr class="row-detail detail-seguros" data-mes="05" data-valor="4672.91">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/05/2026</strong> • N° 1490836 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                            </tr>
+                            <tr class="row-detail detail-seguros" data-mes="10" data-valor="4672.91">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/10/2026</strong> • N° 1516665 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                            </tr>
+                            <tr class="row-detail detail-seguros" data-mes="09" data-valor="4672.91">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/09/2026</strong> • N° 1516664 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                            </tr>
+                            <tr class="row-detail detail-seguros" data-mes="02" data-valor="4672.95">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>04/02/2026</strong> • N° 1410767 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,95</td>
+                            </tr>
+                            <tr class="row-detail detail-seguros" data-mes="07" data-valor="4672.91">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/07/2026</strong> • N° 1516660 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                            </tr>
+                            <tr class="row-detail detail-seguros" data-mes="04" data-valor="4672.91">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/04/2026</strong> • N° 1460626 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,91</td>
+                            </tr>
+                            <tr class="row-detail detail-seguros" data-mes="03" data-valor="4672.87">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/03/2026</strong> • N° 1441466 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BANCO BRADESCO</strong>
+                                </td>
+                                <td><span class="badge-sub">SEGURO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.672,87</td>
                             </tr>
                             <tr class="row-sub sub-custos" onclick="toggleRow('detail-encargos')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • IPVA / Lic. / Multas</td>
                                 <td><span class="badge-sub">Encargos / Leis</span></td>
-                                <td class="text-right val-sub-encargos">R$ 0,00</td>
+                                <td class="text-right val-sub-encargos">R$ 11.542,08</td>
                             </tr>
-                            <tr class="row-detail detail-encargos" data-mes="01" data-valor="0">
-                                <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
+                            <tr class="row-detail detail-encargos" data-mes="01" data-valor="706.74">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>26/01/2026</strong> • N° 1404447 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>DETRAN MS</strong>
+                                </td>
+                                <td><span class="badge-sub">MULTAS DE TRÂNSITO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 706,74</td>
+                            </tr>
+                            <tr class="row-detail detail-encargos" data-mes="01" data-valor="1059.31">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>29/01/2026</strong> • N° 1407889 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>DETRAN MS</strong>
+                                </td>
+                                <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.059,31</td>
+                            </tr>
+                            <tr class="row-detail detail-encargos" data-mes="03" data-valor="1108.76">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/03/2026</strong> • N° 1434819 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>DETRAN MS</strong>
+                                </td>
+                                <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.108,76</td>
+                            </tr>
+                            <tr class="row-detail detail-encargos" data-mes="03" data-valor="1059.29">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/03/2026</strong> • N° 1434836 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>DETRAN MS</strong>
+                                </td>
+                                <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.059,29</td>
+                            </tr>
+                            <tr class="row-detail detail-encargos" data-mes="05" data-valor="1059.29">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>29/05/2026</strong> • N° 1434849 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>DETRAN MS</strong>
+                                </td>
+                                <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.059,29</td>
+                            </tr>
+                            <tr class="row-detail detail-encargos" data-mes="04" data-valor="1059.29">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>29/04/2026</strong> • N° 1434842 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>DETRAN MS</strong>
+                                </td>
+                                <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.059,29</td>
+                            </tr>
+                            <tr class="row-detail detail-encargos" data-mes="01" data-valor="5489.4">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/01/2027</strong> • N° 1135562 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>DETRAN MS</strong>
+                                </td>
+                                <td><span class="badge-sub">IPVA / LICENCIAMENTOS / LICENCAS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 5.489,40</td>
                             </tr>
                             <tr class="row-sub sub-custos" onclick="toggleRow('detail-outros')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Outros Custos</td>
                                 <td><span class="badge-sub">Outros</span></td>
-                                <td class="text-right val-sub-outros">R$ 0,00</td>
+                                <td class="text-right val-sub-outros">R$ 7.228,52</td>
                             </tr>
-                            <tr class="row-detail detail-outros" data-mes="01" data-valor="0">
-                                <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
+                            <tr class="row-detail detail-outros" data-mes="01" data-valor="890.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>23/01/2026</strong> • N° 1403641 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                </td>
+                                <td><span class="badge-sub">ADIANTAMENTO SALARIAL -CUSTO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 890,00</td>
+                            </tr>
+                            <tr class="row-detail detail-outros" data-mes="02" data-valor="284.5">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/02/2026</strong> • N° 1417434 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
+                                </td>
+                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-outros" data-mes="07" data-valor="284.5">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/07/2026</strong> • N° 1417440 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
+                                </td>
+                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-outros" data-mes="04" data-valor="284.5">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/04/2026</strong> • N° 1417437 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
+                                </td>
+                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-outros" data-mes="10" data-valor="98.9">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/10/2026</strong> • N° 1465665 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>T4S TECNOLOGIA S.A.</strong>
+                                </td>
+                                <td><span class="badge-sub">SERVICO MONITORAMENTO DE VEICULOS</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 98,90</td>
+                            </tr>
+                            <tr class="row-detail detail-outros" data-mes="03" data-valor="284.5">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/03/2026</strong> • N° 1417435 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
+                                </td>
+                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-outros" data-mes="06" data-valor="284.5">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/06/2026</strong> • N° 1417439 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
+                                </td>
+                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-outros" data-mes="02" data-valor="4532.62">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>04/02/2026</strong> • N° 1410618 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                </td>
+                                <td><span class="badge-sub">SALARIOS -CUSTO</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.532,62</td>
+                            </tr>
+                            <tr class="row-detail detail-outros" data-mes="05" data-valor="284.5">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/05/2026</strong> • N° 1417438 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
+                                </td>
+                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
                             </tr>
                             <!-- BLOCO 5: RESULTADO -->
                             <tr class="row-total">
                                 <td>(=) RESULTADO / LUCRO LÍQUIDO DO EXERCÍCIO</td>
                                 <td>Resultado Final DRE</td>
-                                <td class="text-right val-resultado-liquido" style="color: var(--accent-purple);;">R$ R$ 202.222,10</td>
+                                <td class="text-right val-resultado-liquido" style="color: var(--accent-purple);;">R$ 116.871,03</td>
                             </tr>
                     </tbody>
                 </table>
@@ -591,7 +857,7 @@
             <i class="fa-solid fa-code-branch" style="color: var(--accent-blue);"></i> 
             <span>Agrovia DRE Master v8.36-RobustAuditEngine</span> 
             <span style="color: var(--border-color);">•</span> 
-            <span>Atualizado em: 02/10/2026 às 14:11</span>
+            <span>Atualizado em: 02/10/2026 às 16:17</span>
         </div>
     </footer>
 </div>
@@ -696,7 +962,7 @@
                     backgroundColor: 'rgba(56, 189, 248, 0.7)', borderColor: '#38bdf8', borderWidth: 1, borderRadius: 4
                 },
                 {
-                    label: 'Custo Total Frota', data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    label: 'Custo Total Frota', data: [21346.47, 20813.329999999998, 7125.42, 6016.7, 6016.7, 4957.41, 4957.41, 4672.91],
                     backgroundColor: 'rgba(46, 204, 113, 0.7)', borderColor: '#2ecc71', borderWidth: 1, borderRadius: 4
                 }
             ]
@@ -717,9 +983,9 @@
         type: 'doughnut',
         plugins: [ChartDataLabels],
         data: {
-            labels: ["Combustível (Diesel)", "Manutenção", "Pedágio", "Seguros", "IPVA / Lic. / Multas", "Outros Custos"],
+            labels: ["Seguros", "Combustível (Diesel)", "IPVA / Lic. / Multas", "Manutenção", "Outros Custos", "Pedágio"],
             datasets: [{
-                data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                data: [42056.19, 11983.08, 11542.079999999998, 9846.84, 7228.52, 2694.36],
                 backgroundColor: ['#34D399', '#FB923C', '#FBBF24', '#38BDF8', '#A3E635', '#F43F5E'],
                 borderWidth: 0
             }]
