@@ -6,6 +6,14 @@ echo ====================================================================
 echo   AGROVIA - MOTOR DE GESTAO DE CUSTO DE FROTA (v8.32 Cloud Auto)
 echo ====================================================================
 echo.
+if exist "Entrada_Quarentena\*.xls*" (
+    echo [0/4] Ficheiros em Entrada_Quarentena: a validar antes de entrarem no Banco_de_Dados...
+    python validar_entrada.py
+    echo     Pendencias em: relatorios_auditoria\pendencias_lancamentos.xlsx / .html
+    echo     Ficheiros retidos nao entram no painel desta execucao.
+    echo.
+)
+
 echo [1/4] A executar o motor Python e a processar os dados do Sankhya...
 python atualizar_dashboard.py
 
@@ -27,8 +35,8 @@ python auditoria_completa.py
 if errorlevel 1 (
     echo.
     echo ====================================================================
-    echo [X] PUBLICACAO BLOQUEADA: a auditoria falhou ou o periodo da receita
-    echo     e diferente do periodo dos custos. Nada foi enviado para o GitHub.
+    echo [X] PUBLICACAO BLOQUEADA: a auditoria falhou.
+    echo     Nada foi enviado para o GitHub.
     echo Motivos em: relatorios_auditoria\veredito_publicacao.txt
     echo O index.html local NAO esta auditado e nao deve ser commitado a mao.
     echo ====================================================================

@@ -9,6 +9,7 @@ import unicodedata
 
 PASTA_PROJETO = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(PASTA_PROJETO, "Banco_de_Dados")
+PASTA_QUARENTENA = os.path.join(PASTA_PROJETO, "Entrada_Quarentena")
 PASTA_RELATORIOS = os.path.join(PASTA_PROJETO, "relatorios_auditoria")
 CAMINHO_INVENTARIO = os.path.join(PASTA_RELATORIOS, "inventario_fontes.txt")
 
@@ -35,12 +36,12 @@ def motivo_exclusao(nome: str):
     return None
 
 
-def _ficheiros_na_pasta() -> list:
-    if not os.path.isdir(PASTA_DADOS):
+def _ficheiros_na_pasta(pasta: str = PASTA_DADOS) -> list:
+    if not os.path.isdir(pasta):
         return []
     return sorted(
-        n for n in os.listdir(PASTA_DADOS)
-        if os.path.isfile(os.path.join(PASTA_DADOS, n)) and n.lower() != "desktop.ini"
+        n for n in os.listdir(pasta)
+        if os.path.isfile(os.path.join(pasta, n)) and n.lower() != "desktop.ini"
     )
 
 
@@ -65,6 +66,15 @@ def listar_ficheiros_abastecimento() -> list:
         if motivo_exclusao(n) is None and eh_abastecimento(n)
     ]
     return [os.path.join(PASTA_DADOS, n) for n in validos]
+
+
+def listar_ficheiros_quarentena() -> list:
+    """Caminhos absolutos dos Excel à espera de validação em Entrada_Quarentena.
+
+    Não são fonte de análise: só passam a contar depois de promovidos para Banco_de_Dados.
+    """
+    validos = [n for n in _ficheiros_na_pasta(PASTA_QUARENTENA) if motivo_exclusao(n) is None]
+    return [os.path.join(PASTA_QUARENTENA, n) for n in validos]
 
 
 def escrever_inventario(script: str) -> list:

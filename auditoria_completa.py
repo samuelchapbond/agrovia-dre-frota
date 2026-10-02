@@ -1,141 +1,28 @@
 import pandas as pd
-import unicodedata
 import os
-import re
 import sys
 import numpy as np
 
 from fontes_dados import escrever_inventario
-
-def configurar_stdout_utf8() -> None:
-    """Evita UnicodeEncodeError no terminal Windows (cp1252) com emoji/acentos."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if callable(reconfigure):
-            try:
-                reconfigure(encoding="utf-8", errors="replace")
-            except Exception as exc:
-                print(f"[AVISO] Falha ao reconfigurar {stream.name}: {exc}", file=sys.stderr)
+from regras_lancamento import (
+    PLACA_FROTA_PRINCIPAL,
+    carregar_excel_inteligente,
+    celula_texto,
+    configurar_stdout_utf8,
+    encontrar_coluna,
+    encontrar_coluna_nr_unico,
+    encontrar_coluna_operador,
+    encontrar_coluna_parceiro,
+    extrair_placa_do_texto,
+    limpar_texto,
+    reduzir_historico,
+)
 
 configurar_stdout_utf8()
 
 print("="*145)
 print(" 🔍 AGROVIA - AUDITORIA DE BACKEND (NOME TEXTUAL DO OPERADOR E HISTÓRICO REDUZIDO)")
 print("="*145)
-
-PLACA_FROTA_PRINCIPAL = "OOM9749"
-PLACEHOLDERS_PLACA = {"", "N/D", "NAN", "NONE", "NULL", "N/A", "NA", "[XYZ]", "-", "0", "SEM PLACA"}
-
-def limpar_texto(texto):
-    if pd.isna(texto):
-        return ""
-    texto_str = str(texto).strip()
-    nfkd = unicodedata.normalize('NFKD', texto_str)
-    return "".join([c for c in nfkd if not unicodedata.combining(c)])
-
-def celula_texto(valor) -> str:
-    if valor is None or (isinstance(valor, float) and pd.isna(valor)):
-        return ""
-    try:
-        if pd.isna(valor):
-            return ""
-    except (TypeError, ValueError):
-        pass
-    texto = str(valor).strip()
-    if texto.lower() in {"nan", "nat", "none", "null"}:
-        return ""
-    return texto
-
-def reduzir_historico(hist, max_len=30):
-    """Reduz o texto do histórico para manter a tabela limpa e legível."""
-    if not hist:
-        return ""
-    h_str = str(hist).strip()
-    if len(h_str) > max_len:
-        return h_str[:max_len] + "..."
-    return h_str
-
-PADRAO_PLACA = re.compile(
-    r'(?<![A-Z0-9])([A-Z]{3}-?[0-9][A-Z0-9][0-9]{2})(?![A-Z0-9])'
-)
-
-def extrair_placa_do_texto(texto):
-    if not texto:
-        return None
-    match = PADRAO_PLACA.search(str(texto).upper())
-    if match:
-        return match.group(1).replace("-", "")
-    return None
-
-def carregar_excel_inteligente(caminho_arquivo):
-    for linha_cabecalho in range(0, 5):
-        try:
-            df = pd.read_excel(caminho_arquivo, header=linha_cabecalho)
-            colunas_str = [str(c) for c in df.columns]
-            if any('natureza' in limpar_texto(c).lower() for c in colunas_str) or any('valor' in limpar_texto(c).lower() for c in colunas_str):
-                return df
-        except Exception:
-            continue
-    return pd.read_excel(caminho_arquivo)
-
-def encontrar_coluna(df, possiveis_nomes):
-    colunas_norm = {limpar_texto(c).lower(): c for c in df.columns}
-    for nome in possiveis_nomes:
-        nome_limpo = limpar_texto(nome).lower()
-        if nome_limpo in colunas_norm:
-            return colunas_norm[nome_limpo]
-    for col_norm, col_original in colunas_norm.items():
-        for nome in possiveis_nomes:
-            if limpar_texto(nome).lower() in col_norm:
-                return col_original
-    return None
-
-def encontrar_coluna_nr_unico(df):
-    possiveis = ['nufin', 'nunota', 'nu. unico', 'numero unico', 'nrunico', 'nr unico', 'id unico', 'chave', 'lancamento']
-    colunas_norm = {limpar_texto(c).lower(): c for c in df.columns}
-    for p in possiveis:
-        if p in colunas_norm:
-            return colunas_norm[p]
-    for col_norm, col_original in colunas_norm.items():
-        if any(p in col_norm for p in ['nufin', 'nunota', 'nrunico', 'unico', 'chave']):
-            return col_original
-    return None
-
-def encontrar_coluna_parceiro(df):
-    for col in df.columns:
-        c_lower = limpar_texto(str(col)).lower()
-        if ('nome' in c_lower or 'razao' in c_lower or 'descricao' in c_lower) and ('parceiro' in c_lower or 'cliente' in c_lower or 'fornecedor' in c_lower):
-            return col
-    for col in df.columns:
-        c_lower = limpar_texto(str(col)).lower()
-        if 'nome' in c_lower or 'razao' in c_lower:
-            return col
-    return encontrar_coluna(df, ['Parceiro', 'Nome Parceiro', 'Razao Social', 'Cliente', 'Fornecedor'])
-
-def encontrar_coluna_operador(df):
-    """Procura especificamente pela coluna de NOME do operador/usuário, ignorando códigos."""
-    # 0. Prioridade ABSOLUTA para os nomes padrão do Sankhya com parênteses
-    nomes_exatos = ['nome (usuario)', 'nome usuario', 'nome (operador)', 'nome operador']
-    colunas_norm = {limpar_texto(str(c)).lower(): c for c in df.columns}
-    for n in nomes_exatos:
-        if n in colunas_norm:
-            return colunas_norm[n]
-
-    # 1. Prioridade máxima: Colunas que contenham "Nome" ou "Descrição" + "Usuário/Operador"
-    for col in df.columns:
-        c_lower = limpar_texto(str(col)).lower()
-        if ('nome' in c_lower or 'descricao' in c_lower) and ('usuario' in c_lower or 'operador' in c_lower or 'responsavel' in c_lower):
-            return col
-            
-    # 2. Prioridade média: Varredura geral bloqueando "cod" e "id"
-    for col in df.columns:
-        c_lower = limpar_texto(str(col)).lower()
-        if any(p in c_lower for p in ['usuario', 'operador', 'responsavel', 'criado por']):
-            if 'cod' not in c_lower and 'id' not in c_lower:
-                return col
-                
-    # 3. Fallback original
-    return encontrar_coluna(df, ['Usuario', 'Operador'])
 
 def classificar_categoria_despesa(natureza, historico):
     texto = limpar_texto(f"{natureza} {historico}").lower()
@@ -164,7 +51,7 @@ def descrever_periodo(meses):
         return "sem lançamentos"
     return f"{min(meses)} a {max(meses)} ({len(meses)} meses com lançamentos: {', '.join(sorted(meses))})"
 
-def emitir_veredito(falhas, meses_receita, meses_custos):
+def emitir_veredito(falhas, meses_receita, meses_custos, avisos=()):
     linhas = [
         "VEREDITO DE PUBLICAÇÃO - auditoria_completa.py",
         f"Gerado em: {pd.Timestamp.now():%Y-%m-%d %H:%M:%S}",
@@ -177,6 +64,9 @@ def emitir_veredito(falhas, meses_receita, meses_custos):
         linhas += [f"  - {f}" for f in falhas]
     else:
         linhas.append("RESULTADO: APROVADO")
+    if avisos:
+        linhas.append("AVISOS (não bloqueiam):")
+        linhas += [f"  - {a}" for a in avisos]
 
     print("\n" + "="*145)
     print(" 🛡️  VEREDITO DE PUBLICAÇÃO")
@@ -193,6 +83,7 @@ arquivos = escrever_inventario("auditoria_completa.py")
 excel_files = arquivos
 
 falhas_auditoria = []
+avisos_auditoria = []
 meses_receita = set()
 meses_custos = set()
 
@@ -402,11 +293,12 @@ if excel_files:
     if meses_receita and meses_custos:
         periodo_receita = (min(meses_receita), max(meses_receita))
         periodo_custos = (min(meses_custos), max(meses_custos))
+        # Todos os meses e provisões de Banco_de_Dados entram no painel; a diferença de período só avisa.
         if periodo_receita != periodo_custos:
-            falhas_auditoria.append(
+            avisos_auditoria.append(
                 f"Período da receita ({periodo_receita[0]} a {periodo_receita[1]}) diferente do período dos custos "
-                f"({periodo_custos[0]} a {periodo_custos[1]})."
+                f"({periodo_custos[0]} a {periodo_custos[1]}); todos os lançamentos foram mantidos."
             )
 
-emitir_veredito(falhas_auditoria, meses_receita, meses_custos)
+emitir_veredito(falhas_auditoria, meses_receita, meses_custos, avisos_auditoria)
 sys.exit(1 if falhas_auditoria else 0)
