@@ -11,6 +11,8 @@ __pycache__/
 
 # Segredos (chaves de API)
 .env
+# Chave de serviço do Firebase e outros segredos locais
+config_local/
 
 # Locks temporários do Excel
 ~$*

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Agrovia - Administração de Acessos</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="acesso.css">
+</head>
+<body>
+<div id="raiz">
+    <div class="pagina" id="conteudo" hidden>
+        <header class="card">
+            <div>
+                <h1><i class="fa-solid fa-user-shield"></i> Agrovia - Administração de Acessos</h1>
+                <p class="sub">Sessão de <strong id="apelidoAdm"></strong> (ADM) | Cadastro de quem pode abrir a quarentena</p>
+            </div>
+            <div class="acoes">
+                <a class="btn" href="quarentena.html"><i class="fa-solid fa-shield-halved"></i> Quarentena</a>
+                <button id="btnSair" class="btn btn-perigo" type="button"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+            </div>
+        </header>
+
+        <section class="card">
+            <h2><i class="fa-solid fa-user-plus"></i> Cadastrar usuário</h2>
+            <form id="formCadastro" class="grade-form" novalidate autocomplete="off">
+                <label>Nome
+                    <input id="nome" maxlength="80" required placeholder="Nome completo">
+                </label>
+                <label>Usuário / apelido
+                    <input id="apelido" maxlength="30" autocapitalize="none" spellcheck="false" required placeholder="ex.: chapbond">
+                </label>
+                <label>Celular com DDD
+                    <input id="celular" inputmode="tel" maxlength="16" required placeholder="(11) 98765-4321">
+                </label>
+                <label>Senha provisória (6 dígitos)
+                    <span class="linha-input">
+                        <input id="senhaProvisoria" inputmode="numeric" maxlength="6" required placeholder="••••••">
+                        <button id="btnGerar" class="btn" type="button" title="Gerar senha aleatória"><i class="fa-solid fa-dice"></i></button>
+                    </span>
+                </label>
+                <label>Papel
+                    <select id="papel">
+                        <option value="USUARIO" selected>Usuário</option>
+                        <option value="ADM">ADM</option>
+                    </select>
+                </label>
+                <button id="btnCadastrar" class="btn btn-principal" type="submit"><i class="fa-solid fa-floppy-disk"></i> Cadastrar</button>
+            </form>
+            <div id="mensagem" class="mensagem resultado-cadastro" hidden></div>
+            <div id="resultado" class="mensagem ok resultado-cadastro" hidden>
+                <strong>Usuário criado.</strong> Repasse ao usuário (a senha provisória não volta a aparecer):
+                <pre id="textoRepasse"></pre>
+                <button id="btnCopiar" class="btn btn-pequeno" type="button"><i class="fa-solid fa-copy"></i> Copiar mensagem</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2><i class="fa-solid fa-users"></i> Usuários cadastrados</h2>
+            <div id="mensagemLista" class="mensagem" hidden></div>
+            <div class="table-wrap">
+                <table id="tabelaUsuarios">
+                    <thead><tr><th>Usuário</th><th>Nome</th><th>Celular</th><th>Papel</th><th>Estado</th><th>Ações</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="vazio">A carregar...</td></tr></tbody>
+                </table>
+            </div>
+            <p class="dica">Para trocar a senha de um usuário já cadastrado ou apagá-lo é preciso o script local (pendência registada). Bloquear corta o acesso na hora.</p>
+        </section>
+
+        <footer class="card">
+            <div class="footer-left"><i class="fa-solid fa-shield-cat" style="color: var(--accent-purple);"></i> Gestão e Auditoria Técnica: <span>Samuel Oliveira Silva</span></div>
+        </footer>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { initializeAuth, inMemoryPersistence, createUserWithEmailAndPassword, signOut }
+    from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { collection, doc, getDocs, setDoc, updateDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase_config.js";
+import { configurado, db, PADRAO_APELIDO, PADRAO_SENHA, PADRAO_CELULAR, normalizarApelido, apelidoParaEmail,
+         soDigitos, formatarCelular, exigirSessao, sair, mensagemErro, mostrarMensagem, avisoNaoConfigurado }
+    from "./acesso_comum.js";
+
+function gerarSenha() {
+    const n = new Uint32Array(1);
+    let senha;
+    do {
+        crypto.getRandomValues(n);
+        senha = String(n[0] % 1000000).padStart(6, "0");
+    } while (/^(\d)\1{5}$/.test(senha) || "0123456789".includes(senha) || "9876543210".includes(senha));
+    return senha;
+}
+
+function celula(tr, conteudo, label) {
+    const td = document.createElement("td");
+    if (conteudo instanceof Node) td.appendChild(conteudo); else td.textContent = conteudo ?? "";
+    td.dataset.label = label;
+    tr.appendChild(td);
+    return td;
+}
+
+function badge(texto, classe) {
+    const s = document.createElement("span");
+    s.className = `badge ${classe}`;
+    s.textContent = texto;
+    return s;
+}
+
+function botao(texto, classe, aoClicar) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `btn btn-pequeno ${classe}`;
+    b.textContent = texto;
+    b.addEventListener("click", aoClicar);
+    return b;
+}
+
+if (!configurado) {
+    avisoNaoConfigurado(document.getElementById("raiz"));
+} else {
+    const sessao = await exigirSessao("adm");
+    if (sessao) {
+        const { usuario: adm, perfil: perfilAdm } = sessao;
+        // Instância separada para criar contas sem trocar a sessão do ADM.
+        const authCadastro = initializeAuth(initializeApp(firebaseConfig, "cadastro"), { persistence: inMemoryPersistence });
+        const msg = document.getElementById("mensagem");
+        const msgLista = document.getElementById("mensagemLista");
+
+        document.getElementById("apelidoAdm").textContent = perfilAdm.apelido;
+        document.getElementById("conteudo").hidden = false;
+        document.getElementById("btnSair").addEventListener("click", sair);
+        document.getElementById("btnGerar").addEventListener("click", () => {
+            document.getElementById("senhaProvisoria").value = gerarSenha();
+        });
+        document.getElementById("btnCopiar").addEventListener("click", async () => {
+            try {
+                await navigator.clipboard.writeText(document.getElementById("textoRepasse").textContent);
+                document.getElementById("btnCopiar").textContent = "Copiado";
+            } catch (e) {
+                mostrarMensagem(msg, "Não foi possível copiar; selecione o texto e copie à mão.");
+            }
+        });
+
+        async function alterar(uid, campos, descricao) {
+            if (!confirm(descricao + "?")) return;
+            try {
+                await updateDoc(doc(db, "perfis", uid), { ...campos, atualizado_por: perfilAdm.apelido, atualizado_em: serverTimestamp() });
+                await carregarUsuarios();
+            } catch (erro) {
+                mostrarMensagem(msgLista, mensagemErro(erro));
+            }
+        }
+
+        async function carregarUsuarios() {
+            const tb = document.querySelector("#tabelaUsuarios tbody");
+            try {
+                const snap = await getDocs(collection(db, "perfis"));
+                const lista = snap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => a.apelido.localeCompare(b.apelido));
+                tb.innerHTML = "";
+                lista.forEach(p => {
+                    const tr = document.createElement("tr");
+                    const eu = p.uid === adm.uid;
+                    celula(tr, p.apelido + (eu ? " (você)" : ""), "Usuário");
+                    celula(tr, p.nome, "Nome");
+                    celula(tr, formatarCelular(p.celular), "Celular");
+                    celula(tr, p.papel === "ADM" ? badge("ADM", "badge-adm") : "Usuário", "Papel");
+                    const estado = !p.ativo ? badge("BLOQUEADO", "badge-bloq")
+                        : p.deve_trocar_senha ? badge("AGUARDA 1.º ACESSO", "badge-aviso") : badge("ATIVO", "badge-ok");
+                    celula(tr, estado, "Estado");
+                    const acoes = document.createElement("div");
+                    acoes.className = "acoes";
+                    if (!eu) {
+                        acoes.appendChild(p.ativo
+                            ? botao("Bloquear", "btn-perigo", () => alterar(p.uid, { ativo: false }, `Bloquear ${p.apelido}`))
+                            : botao("Desbloquear", "", () => alterar(p.uid, { ativo: true }, `Desbloquear ${p.apelido}`)));
+                        acoes.appendChild(p.papel === "ADM"
+                            ? botao("Tornar usuário", "", () => alterar(p.uid, { papel: "USUARIO" }, `Tirar ADM de ${p.apelido}`))
+                            : botao("Tornar ADM", "", () => alterar(p.uid, { papel: "ADM" }, `Tornar ${p.apelido} ADM`)));
+                    }
+                    celula(tr, acoes, "Ações");
+                    tb.appendChild(tr);
+                });
+                if (!lista.length) tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum usuário.</td></tr>';
+            } catch (erro) {
+                tb.innerHTML = '<tr><td colspan="6" class="vazio">Não foi possível carregar.</td></tr>';
+                mostrarMensagem(msgLista, mensagemErro(erro));
+            }
+        }
+
+        document.getElementById("formCadastro").addEventListener("submit", async ev => {
+            ev.preventDefault();
+            document.getElementById("resultado").hidden = true;
+            const nome = document.getElementById("nome").value.trim();
+            const apelido = normalizarApelido(document.getElementById("apelido").value);
+            const celular = soDigitos(document.getElementById("celular").value);
+            const senha = document.getElementById("senhaProvisoria").value.trim();
+            const papel = document.getElementById("papel").value;
+            if (nome.length < 2) return mostrarMensagem(msg, "Preencha o nome.");
+            if (!PADRAO_APELIDO.test(apelido)) return mostrarMensagem(msg, "Apelido inválido: 3 a 30 caracteres, só letras, números, ponto, hífen ou _.");
+            if (!PADRAO_CELULAR.test(celular)) return mostrarMensagem(msg, "Celular inválido: DDD + 9 dígitos (11 números).");
+            if (!PADRAO_SENHA.test(senha)) return mostrarMensagem(msg, "A senha provisória tem de ter exatamente 6 dígitos.");
+
+            const btn = document.getElementById("btnCadastrar");
+            btn.disabled = true;
+            mostrarMensagem(msg, "A cadastrar...", "info");
+            try {
+                const cred = await createUserWithEmailAndPassword(authCadastro, apelidoParaEmail(apelido), senha);
+                const uid = cred.user.uid;
+                await signOut(authCadastro);
+                await setDoc(doc(db, "perfis", uid), {
+                    apelido, nome, celular, papel,
+                    ativo: true,
+                    deve_trocar_senha: true,
+                    criado_por: perfilAdm.apelido,
+                    criado_em: serverTimestamp(),
+                });
+                mostrarMensagem(msg, "");
+                document.getElementById("textoRepasse").textContent =
+                    `Olá ${nome}! O seu acesso à Quarentena Agrovia foi criado.\n` +
+                    `Endereço: ${new URL("login.html", location.href).href}\n` +
+                    `Usuário: ${apelido}\nSenha provisória: ${senha}\n` +
+                    "No primeiro acesso vai criar a sua própria senha.";
+                document.getElementById("btnCopiar").innerHTML = '<i class="fa-solid fa-copy"></i> Copiar mensagem';
+                document.getElementById("resultado").hidden = false;
+                ev.target.reset();
+                await carregarUsuarios();
+            } catch (erro) {
+                mostrarMensagem(msg, mensagemErro(erro));
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        carregarUsuarios();
+    }
+}
+</script>
+</body>
+</html>

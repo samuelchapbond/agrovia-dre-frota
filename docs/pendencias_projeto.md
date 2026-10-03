@@ -52,7 +52,7 @@ Já feito (commit `9636fc8`): `validar_entrada.py` / `validar_entrada.bat` valid
    - `🧪 Quarentena` no cabeçalho do `template.html`, entre "Ver Tabela Analítica" e PC/Mobile; abre `saidas/relatorios_auditoria/pendencias_lancamentos.html` em nova aba.
    - Decisão provisória do SAMUEL (03/10/2026): o botão passa a aparecer também no GitHub (PC e celular), desativado e sem link, como "🧪 Quarentena: só no PC local". A tela continua sem ser publicada (`saidas/` fora do git); só abre ao abrir o painel localmente (`file:`, `localhost`, `127.0.0.1`).
    - O motor marca `data-relatorio="presente|ausente"`; localmente, sem relatório, o botão aparece desativado como "⚠️ Quarentena: sem relatório" (correr `validar_entrada.bat`).
-   - [ ] **Rever pela segurança:** decidir se o botão fica visível no site público ou volta a ficar escondido, e se algum dia a quarentena terá versão publicável (sem valores, parceiros nem Nro Único). Repositório e site são públicos: nada da tela de pendências pode entrar no `index.html` nem no git.
+   - [x] **Rever pela segurança:** resolvido pelo item 5 (login na nuvem). O botão fica ativo no site e no PC e abre `acesso/login.html`; os dados só chegam depois do login. Continua a valer: nada da tela de pendências entra no `index.html` nem no git.
 2. [x] **Versão do painel automática (03/10/2026):** o rodapé deixou de usar um número fixo. `obter_versao_painel()` em `atualizar_dashboard.py` grava `VERSAO_BASE` + commit git curto (ex.: `v8.36 · 4d18197`), com `+local` quando há alterações não commitadas em `src/` ou `templates/`. A versão base (`VERSAO_BASE`) continua manual, para mudanças grandes.
 3. [x] **Severidade da placa `[XYZ]`:** decisão do SAMUEL (03/10/2026): **mantém BLOQUEANTE**.
    - Critério do validador (`regras_lancamento.py`): placa no campo → OK; campo genérico mas placa no histórico/observação/identificação → AVISO ("Placa só no histórico"); sem placa em lado nenhum → BLOQUEANTE ("Placa genérica ou ausente").
@@ -64,6 +64,28 @@ Já feito (commit `9636fc8`): `validar_entrada.py` / `validar_entrada.bat` valid
    - [x] Corrigido (03/10/2026): o gráfico "Evolução Mensal" cortava em agosto e somava meses de anos diferentes (2027-01 caía em janeiro de 2026). Agora mostra todos os meses AAAA-MM do primeiro ao último lançamento (rótulos `Jan/26` … `Jan/27`) e as barras somam os totais dos KPIs.
    - [x] Corrigido (03/10/2026): o filtro de meses da tabela ia só de janeiro a setembro e usava só o mês, sem o ano. Agora o motor grava `data-mes` como AAAA-MM e o filtro passou a botões de ano (`Todos`, `2026`, `2027`) mais um período manual "De / Até" com os meses do mesmo intervalo do gráfico (`Jan/26` … `Jan/27`). Em "Todos", a tabela soma os totais dos KPIs; o lançamento de 2027-01 só entra no ano 2027.
 4. [x] **`.gitignore`:** `dados/banco_de_dados/`, `dados/entrada_quarentena/`, `saidas/relatorios_auditoria/`, `saidas/backup_relatorios/` inteiros fora do git (commit `1011c00`, 02/10/2026). O repositório é público.
+5. [ ] **Login da quarentena na nuvem (Firebase, plano Spark gratuito) — 03/10/2026:**
+   - Decisão do SAMUEL (03/10/2026): acesso de qualquer lugar e custo zero. A quarentena passa a ficar no Firestore, protegida por login; deixa de valer a regra "a quarentena nunca é publicada" (agora: publicada só atrás de login).
+   - [x] Código feito:
+     - telas `acesso/login.html`, `acesso/trocar_senha.html`, `acesso/adm.html` e `acesso/quarentena.html` (mesmo visual da tela antiga);
+     - regras de acesso em `firebase/firestore.rules`;
+     - envio dos dados em `src/quarentena_online.py`, chamado pelo `validar_entrada.py`;
+     - primeiro ADM com `ferramentas/criar_adm_firebase.py`;
+     - chave de serviço em `config_local/` (no `.gitignore`).
+   - [x] O ADM cadastra nome, apelido, celular e senha provisória. No primeiro acesso, o usuário é obrigado a criar a própria senha; as regras do Firestore negam a leitura da quarentena até lá.
+   - [x] Senha de **6 dígitos** (o Firebase exige no mínimo 6; o modelo inicial de 4 dígitos não é aceite). Muitas tentativas erradas são travadas pelo próprio Firebase.
+   - [x] **Limite fechado:** o `saidas/relatorios_auditoria/pendencias_lancamentos.html` local deixou de ter dados; é só um atalho para a tela online. O ficheiro antigo, com dados, foi substituído em 03/10/2026.
+   - [ ] **Configurar o Firebase na consola** (SAMUEL, ~15 min): criar o projeto Spark, ativar Email/Senha, criar o Firestore (`southamerica-east1`), colar a config em `acesso/firebase_config.js`, autorizar `samuelchapbond.github.io`, gravar a chave em `config_local/firebase_servico.json` e publicar `firebase/firestore.rules`. Depois, criar o 1.º ADM com `python ferramentas\criar_adm_firebase.py`.
+   - [x] **Publicar as telas:** commit e push feitos a pedido do SAMUEL (03/10/2026). O `atualizar.bat` só faz `git add index.html`: alterações futuras em `acesso/` ou `firebase/` precisam de commit próprio. Até o Firebase estar configurado, o botão no site abre a tela "Login ainda não configurado".
+   - [x] `.cursorrules` atualizado (mapa do projeto, blindagem de `config_local/`, regra do Designer sobre a quarentena) — 03/10/2026.
+   - [ ] **Teste de ponta a ponta** depois da configuração: login errado, 1.º acesso com troca obrigatória, usuário comum sem acesso a `adm.html`, usuário bloqueado sem dados, PC e telemóvel.
+   - Pendências que ficam:
+     - [ ] O `pendencias_lancamentos.xlsx` continua com os dados em texto aberto na pasta do Drive (decisão do SAMUEL: protegido pela partilha do Drive).
+     - [ ] "Nova senha provisória" para usuário já cadastrado e apagar usuário: o plano gratuito não permite fazê-lo pelo browser; precisa de um script local com a chave de serviço (o `criar_adm_firebase.py` já redefine a senha de um ADM).
+     - [ ] Autenticação pelo celular (app autenticador gratuito, ex.: Google Authenticator).
+     - [ ] Envio da senha provisória por WhatsApp (link `wa.me`, gratuito).
+     - [ ] Histórico de acessos (quem entrou e quando).
+     - [ ] Quem tem o link e a chave pública consegue criar uma conta no Firebase por conta própria, mas sem perfil criado pelo ADM não lê nada. Opcional: bloquear a auto-inscrição (exige o upgrade gratuito para Identity Platform).
 
 ### 4.2 Etapa 2 (Multiveículos) — ponto de partida
 * Hoje o motor só conhece a placa `OOM9749` (`PLACA_FROTA_PRINCIPAL`); lançamentos de outras placas são excluídos como "outros veículos".

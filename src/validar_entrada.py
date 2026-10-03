@@ -5,12 +5,13 @@ Uso:
     python validar_entrada.py --sem-promover  # só valida e gera pendências (não move nada)
 
 Saídas em saidas/relatorios_auditoria/: pendencias_lancamentos.xlsx, pendencias_lancamentos.html, log_quarentena.txt.
+A tela com as pendências é online e exige login (acesso/quarentena.html); os dados vão para o Firestore
+(src/quarentena_online.py). O pendencias_lancamentos.html local é só um atalho, sem dados.
 A correção é sempre feita no Sankhya, com nova exportação; o Excel exportado não é editado à mão.
 """
 import argparse
 import datetime
 import html
-import json
 import os
 import shutil
 import sys
@@ -20,7 +21,8 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
-from fontes_dados import PASTA_DADOS, PASTA_QUARENTENA, PASTA_RELATORIOS, listar_ficheiros_quarentena
+from fontes_dados import PASTA_DADOS, PASTA_QUARENTENA, PASTA_RELATORIOS, URL_LOGIN_QUARENTENA, listar_ficheiros_quarentena
+from quarentena_online import calcular_resumo, publicar_quarentena
 from regras_lancamento import AVISO, BLOQUEANTE, configurar_stdout_utf8, validar_ficheiro
 
 CAMINHO_XLSX = os.path.join(PASTA_RELATORIOS, "pendencias_lancamentos.xlsx")
@@ -164,367 +166,41 @@ def registar_log(linhas: list) -> None:
         f.write("\n".join(linhas) + "\n\n")
 
 
-def gerar_html(erros: list, resumo_ficheiros: list, gerado_em: str, sem_promover: bool) -> None:
-    bloqueantes = [e for e in erros if e["severidade"] == BLOQUEANTE]
-    linhas_bloqueadas = {(e["ficheiro"], e["linha"]): abs(e["valor"] or 0) for e in bloqueantes}
-    valor_risco = sum(linhas_bloqueadas.values())
-    promovidos = sum(1 for r in resumo_ficheiros if r["decisao"].startswith("PROMOVIDO"))
-    retidos = sum(1 for r in resumo_ficheiros if r["decisao"].startswith("RETIDO"))
-    modo = "Simulação (--sem-promover): nada foi movido" if sem_promover else "Execução real"
-
-    dados = json.dumps(
-        [{k: e.get(k) for k in ("severidade", "regra", "ficheiro", "linha", "nr_unico", "data", "parceiro",
-                                 "operador", "valor", "placa_erp", "historico", "detalhe", "acao", "status")}
-         for e in erros],
-        ensure_ascii=False,
-    ).replace("</", "<\\/")
-    ficheiros_json = json.dumps(resumo_ficheiros, ensure_ascii=False).replace("</", "<\\/")
-    valor_risco_txt = f"R$ {valor_risco:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
+def gerar_atalho_html(gerado_em: str, envio_ok: bool, mensagem_envio: str) -> None:
+    """Grava o HTML local sem nenhum dado financeiro: só o atalho para a tela online com login."""
+    if envio_ok:
+        estado = f'<p class="ok">Tela online atualizada em {html.escape(gerado_em)}.</p>'
+    else:
+        estado = (f'<p class="falha">A tela online NÃO foi atualizada em {html.escape(gerado_em)}: '
+                  f'{html.escape(mensagem_envio)}.<br>Enquanto isso, as pendências estão em '
+                  f'<code>pendencias_lancamentos.xlsx</code>, nesta mesma pasta.</p>')
     pagina = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agrovia - Quarentena de Lançamentos</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-    :root {{
-        --bg-color: #0f1e17;
-        --card-bg: #162c22;
-        --border-color: rgba(46, 204, 113, 0.25);
-        --text-primary: #f8fafc;
-        --text-secondary: #94a3b8;
-        --accent-blue: #38bdf8;
-        --accent-purple: #a3e635;
-        --accent-pink: #2ecc71;
-        --accent-green: #34d399;
-        --accent-yellow: #fbbf24;
-        --accent-orange: #fb923c;
-        --accent-red: #f87171;
-    }}
-    body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-color); color: var(--text-primary); margin: 0; padding: 15px; }}
-    .container {{ max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }}
-    .card {{ background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); box-sizing: border-box; }}
-    header {{ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }}
-    header h1 {{ margin: 0; font-size: 20px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }}
-    header p {{ margin: 5px 0 0; font-size: 12px; color: var(--text-secondary); }}
-    .author-signature {{ font-size: 11px; color: var(--accent-purple); margin-top: 4px; font-weight: 600; }}
-    .actions {{ display: flex; gap: 10px; flex-wrap: wrap; }}
-    .btn {{ background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.3); color: var(--accent-blue); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; }}
-    .btn.active, .btn:hover {{ background: var(--accent-blue); color: #0f1e17; }}
-    .btn-print {{ background: rgba(163,230,53,0.15); border-color: rgba(163,230,53,0.4); color: var(--accent-purple); }}
-    .btn-print:hover {{ background: var(--accent-purple); color: #0f1e17; }}
-    .kpis {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; }}
-    .kpi {{ position: relative; overflow: hidden; }}
-    .kpi::after {{ content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--k); }}
-    .kpi-title {{ font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }}
-    .kpi-value {{ font-size: 22px; font-weight: 700; margin-top: 8px; }}
-    .kpi-sub {{ font-size: 11px; color: var(--text-secondary); margin-top: 4px; }}
-    .grid2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }}
-    .card-title {{ font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--accent-purple); }}
-    table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
-    th, td {{ padding: 8px 10px; border-bottom: 1px solid var(--border-color); text-align: left; vertical-align: top; }}
-    th {{ background: rgb(19,44,34); color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }}
-    .table-wrap th {{ position: sticky; top: 0; z-index: 1; }}
-    .nowrap {{ white-space: nowrap; }}
-    tr:hover td {{ background: rgba(46,204,113,0.05); }}
-    .num {{ text-align: right; white-space: nowrap; }}
-    .badge {{ display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }}
-    .badge-BLOQUEANTE {{ background: rgba(248,113,113,0.18); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.5); }}
-    .badge-AVISO {{ background: rgba(251,191,36,0.15); color: var(--accent-yellow); border: 1px solid rgba(251,191,36,0.45); }}
-    .badge-ok {{ background: rgba(52,211,153,0.15); color: var(--accent-green); border: 1px solid rgba(52,211,153,0.45); }}
-    .filters {{ display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; align-items: center; }}
-    .filters select, .filters input {{ background: rgba(10,23,17,0.9); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; font-size: 12px; }}
-    .filters input {{ flex: 1; min-width: 180px; }}
-    .count {{ font-size: 12px; color: var(--text-secondary); }}
-    .table-wrap {{ max-height: 620px; overflow: auto; }}
-    .acao {{ color: var(--text-secondary); font-size: 11px; }}
-    #tabelaPendencias .check, #tabelaPendencias .c-hist, body.mobile-mode #tabelaPendencias td.check {{ display: none; }}
-    .empty {{ text-align: center; color: var(--text-secondary); padding: 20px; }}
-    footer {{ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; font-size: 12px; color: var(--text-secondary); }}
-    .footer-left {{ display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; }}
-    .footer-left span {{ color: var(--accent-purple); font-weight: 700; }}
-    .footer-right {{ font-size: 11px; background: rgba(10,23,17,0.5); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); }}
-
-    @media (max-width: 1100px) {{ .kpis {{ grid-template-columns: repeat(3, 1fr); }} }}
-    @media (max-width: 760px) {{
-        .kpis {{ grid-template-columns: repeat(2, 1fr); }}
-        .grid2 {{ grid-template-columns: 1fr; }}
-    }}
-
-    /* ===== Visão Mobile ===== */
-    body.mobile-mode {{ padding: 10px; }}
-    body.mobile-mode .container {{ max-width: 440px; gap: 14px; }}
-    body.mobile-mode header {{ flex-direction: column; align-items: stretch; padding: 14px; }}
-    body.mobile-mode header h1 {{ font-size: 17px; }}
-    body.mobile-mode .actions {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
-    body.mobile-mode .actions .btn {{ padding: 10px; }}
-    body.mobile-mode .btn-print {{ grid-column: 1 / -1; }}
-    body.mobile-mode .kpis {{ grid-template-columns: repeat(2, 1fr); gap: 10px; }}
-    body.mobile-mode .kpi:last-child {{ grid-column: 1 / -1; }}
-    body.mobile-mode .kpi-value {{ font-size: 19px; }}
-    body.mobile-mode .grid2 {{ grid-template-columns: 1fr; gap: 14px; }}
-    body.mobile-mode .table-wrap {{ max-height: none; overflow: visible; }}
-    body.mobile-mode tr:hover td {{ background: transparent; }}
-    body.mobile-mode footer {{ flex-direction: column; align-items: flex-start; }}
-
-    body.mobile-mode .filters {{
-        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-        position: sticky; top: 0; z-index: 2; background: var(--card-bg); padding: 8px 0; margin-bottom: 10px;
-        border-bottom: 1px solid var(--border-color);
-    }}
-    body.mobile-mode .filters select, body.mobile-mode .filters input {{ width: 100%; min-width: 0; box-sizing: border-box; padding: 9px 8px; font-size: 13px; }}
-    body.mobile-mode .filters input {{ font-size: 16px; }}
-    body.mobile-mode #fFicheiro, body.mobile-mode #fBusca, body.mobile-mode .count {{ grid-column: 1 / -1; }}
-    body.mobile-mode .count {{ text-align: right; }}
-
-    body.mobile-mode #tabelaFicheiros, body.mobile-mode #tabelaFicheiros tbody,
-    body.mobile-mode #tabelaPendencias, body.mobile-mode #tabelaPendencias tbody {{ display: block; width: 100%; }}
-    body.mobile-mode #tabelaFicheiros thead, body.mobile-mode #tabelaPendencias thead {{ display: none; }}
-    body.mobile-mode #tabelaFicheiros td, body.mobile-mode #tabelaPendencias td {{ display: block; border: none; padding: 0; min-width: 0; text-align: left; overflow-wrap: anywhere; }}
-    body.mobile-mode #tabelaFicheiros td::before, body.mobile-mode #tabelaPendencias td::before {{
-        content: attr(data-label); display: block; margin-bottom: 2px; color: var(--text-secondary);
-        font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
-    }}
-    body.mobile-mode #tabelaFicheiros td.empty, body.mobile-mode #tabelaPendencias td.empty {{ grid-column: 1 / -1; text-align: center; }}
-
-    body.mobile-mode #tabelaFicheiros tr {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }}
-    body.mobile-mode #tabelaFicheiros td:nth-child(1), body.mobile-mode #tabelaFicheiros td:nth-child(4) {{ grid-column: 1 / -1; }}
-    body.mobile-mode #tabelaFicheiros td:nth-child(1) {{ font-size: 13px; font-weight: 700; }}
-    body.mobile-mode #tabelaFicheiros .badge {{ display: block; white-space: normal; line-height: 1.4; padding: 6px 8px; }}
-
-    body.mobile-mode #tabelaPendencias tr {{
-        display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px;
-        grid-template-areas: "sev valor" "regra regra" "parc parc" "hist hist" "nr data" "fic op" "placa placa" "acao acao" "status status";
-        background: rgba(10,23,17,0.45); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-yellow);
-        border-radius: 10px; margin-bottom: 10px; padding: 12px;
-    }}
-    body.mobile-mode #tabelaPendencias tr.sev-BLOQUEANTE {{ border-left-color: var(--accent-red); }}
-    body.mobile-mode #tabelaPendencias td.c-sev::before, body.mobile-mode #tabelaPendencias td.c-regra::before,
-    body.mobile-mode #tabelaPendencias td.c-parc::before, body.mobile-mode #tabelaPendencias td.c-hist::before {{ content: none; }}
-    body.mobile-mode #tabelaPendencias td.c-sev {{ grid-area: sev; align-self: center; }}
-    body.mobile-mode #tabelaPendencias td.c-valor {{ grid-area: valor; text-align: right; font-size: 15px; font-weight: 700; }}
-    body.mobile-mode #tabelaPendencias td.c-regra {{ grid-area: regra; font-size: 14px; font-weight: 700; }}
-    body.mobile-mode #tabelaPendencias td.c-parc {{ grid-area: parc; font-size: 12px; }}
-    body.mobile-mode #tabelaPendencias td.c-hist {{ grid-area: hist; display: block; font-size: 11px; font-style: italic; color: var(--text-secondary); }}
-    body.mobile-mode #tabelaPendencias td.c-hist:empty {{ display: none; }}
-    body.mobile-mode #tabelaPendencias td.c-nr {{ grid-area: nr; }}
-    body.mobile-mode #tabelaPendencias td.c-data {{ grid-area: data; }}
-    body.mobile-mode #tabelaPendencias td.c-fic {{ grid-area: fic; }}
-    body.mobile-mode #tabelaPendencias td.c-op {{ grid-area: op; }}
-    body.mobile-mode #tabelaPendencias td.c-placa {{ grid-area: placa; }}
-    body.mobile-mode #tabelaPendencias tr td.c-acao {{
-        grid-area: acao; padding: 8px 10px; border-left: 2px solid var(--accent-blue); border-radius: 6px;
-        background: rgba(56,189,248,0.08); color: var(--text-primary); font-size: 12px; line-height: 1.45;
-    }}
-    body.mobile-mode #tabelaPendencias td.c-status {{ grid-area: status; text-align: right; font-size: 11px; color: var(--text-secondary); }}
-    body.mobile-mode #tabelaPendencias td.c-status::before {{ content: attr(data-label) ": "; display: inline; font-size: 11px; text-transform: none; letter-spacing: 0; }}
-
-    @media print {{
-        body {{ background: #fff; color: #000; padding: 0; font-size: 10px; }}
-        .card {{ background: #fff; border: 1px solid #999; box-shadow: none; break-inside: avoid; }}
-        header h1 {{ -webkit-text-fill-color: #000; color: #000; background: none; }}
-        .actions, .filters, .no-print {{ display: none !important; }}
-        .table-wrap {{ max-height: none; overflow: visible; }}
-        th {{ background: #e5e5e5; color: #000; position: static; }}
-        th, td {{ border-bottom: 1px solid #bbb; color: #000; }}
-        .acao, .kpi-sub, .kpi-title, .author-signature, footer, .footer-left, .footer-left span {{ color: #000; }}
-        .badge {{ border: 1px solid #000; color: #000; background: none; }}
-        body:not(.mobile-mode) #tabelaPendencias .check {{ display: table-cell; }}
-        tr {{ break-inside: avoid; }}
-    }}
+    body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f1e17; color: #f8fafc;
+           margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box; }}
+    .card {{ background: #162c22; border: 1px solid rgba(46, 204, 113, 0.25); border-radius: 12px; padding: 24px; max-width: 520px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); }}
+    h1 {{ margin: 0 0 10px; font-size: 20px; color: #a3e635; }}
+    p {{ color: #94a3b8; font-size: 14px; line-height: 1.5; }}
+    .ok {{ color: #34d399; }}
+    .falha {{ color: #fbbf24; }}
+    code {{ color: #fbbf24; }}
+    a.btn {{ display: inline-block; margin-top: 8px; background: #a3e635; color: #0f1e17; padding: 12px 18px; border-radius: 8px;
+            font-weight: 700; text-decoration: none; }}
 </style>
 </head>
-<body id="bodyTag">
-<div class="container">
-    <header class="card">
-        <div>
-            <h1><i class="fa-solid fa-shield-halved"></i> Agrovia - Quarentena de Lançamentos</h1>
-            <p>Gerado em: {html.escape(gerado_em)} | {html.escape(modo)} | Correção sempre no Sankhya, com nova exportação</p>
-            <div class="author-signature">Autor do Relatório: Samuel Oliveira Silva</div>
-        </div>
-        <div class="actions">
-            <button class="btn active" onclick="setViewMode('pc', this)"><i class="fa-solid fa-desktop"></i> PC</button>
-            <button class="btn" onclick="setViewMode('mobile', this)"><i class="fa-solid fa-mobile-screen"></i> Mobile</button>
-            <button class="btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> Imprimir ordem de serviço</button>
-        </div>
-    </header>
-
-    <section class="kpis">
-        <div class="card kpi" style="--k: var(--accent-blue)"><div class="kpi-title">Total de erros</div><div class="kpi-value">{len(erros)}</div><div class="kpi-sub">bloqueantes + avisos</div></div>
-        <div class="card kpi" style="--k: var(--accent-red)"><div class="kpi-title">Bloqueantes</div><div class="kpi-value">{len(bloqueantes)}</div><div class="kpi-sub">impedem a entrada no banco</div></div>
-        <div class="card kpi" style="--k: var(--accent-yellow)"><div class="kpi-title">Avisos</div><div class="kpi-value">{len(erros) - len(bloqueantes)}</div><div class="kpi-sub">confirmar e justificar</div></div>
-        <div class="card kpi" style="--k: var(--accent-orange)"><div class="kpi-title">Valor em risco</div><div class="kpi-value">{valor_risco_txt}</div><div class="kpi-sub">{len(linhas_bloqueadas)} lançamentos com bloqueante</div></div>
-        <div class="card kpi" style="--k: var(--accent-purple)"><div class="kpi-title">Ficheiros</div><div class="kpi-value">{promovidos} / {retidos}</div><div class="kpi-sub">promovidos / retidos</div></div>
-    </section>
-
-    <section class="card">
-        <div class="card-title"><i class="fa-solid fa-folder-open"></i> Decisão por ficheiro</div>
-        <div class="table-wrap"><table id="tabelaFicheiros"><thead><tr><th>Ficheiro</th><th class="num">Bloqueantes</th><th class="num">Avisos</th><th>Decisão</th></tr></thead><tbody></tbody></table></div>
-    </section>
-
-    <section class="grid2">
-        <div class="card">
-            <div class="card-title"><i class="fa-solid fa-user-pen"></i> Por operador</div>
-            <table id="tabelaOperador"><thead><tr><th>Operador</th><th class="num">Bloqueantes</th><th class="num">Avisos</th></tr></thead><tbody></tbody></table>
-        </div>
-        <div class="card">
-            <div class="card-title"><i class="fa-solid fa-list-check"></i> Por regra</div>
-            <table id="tabelaRegra"><thead><tr><th>Regra</th><th>Severidade</th><th class="num">Qtd.</th></tr></thead><tbody></tbody></table>
-        </div>
-    </section>
-
-    <section class="card">
-        <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> Pendências a corrigir</div>
-        <div class="filters">
-            <select id="fSeveridade" aria-label="Filtrar severidade"><option value="">Todas as severidades</option><option>BLOQUEANTE</option><option>AVISO</option></select>
-            <select id="fOperador" aria-label="Filtrar operador"><option value="">Todos os operadores</option></select>
-            <select id="fFicheiro" aria-label="Filtrar ficheiro"><option value="">Todos os ficheiros</option></select>
-            <input id="fBusca" type="search" placeholder="Procurar Nro Único, parceiro, histórico..." aria-label="Procurar">
-            <span class="count" id="contagem"></span>
-        </div>
-        <div class="table-wrap">
-            <table id="tabelaPendencias">
-                <thead><tr>
-                    <th class="check">OK</th><th>Severidade</th><th>Regra</th><th>Nro Único</th><th>Linha</th><th>Data</th>
-                    <th>Parceiro</th><th>Operador</th><th class="num">Valor (R$)</th><th>Placa ERP / Detalhe</th><th>Ação esperada</th><th>Status</th>
-                </tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </section>
-
-    <footer class="card">
-        <div class="footer-left"><i class="fa-solid fa-shield-cat" style="color: var(--accent-purple);"></i> Gestão e Auditoria Técnica: <span>Samuel Oliveira Silva</span></div>
-        <div class="footer-right"><i class="fa-solid fa-code-branch" style="color: var(--accent-blue);"></i> Agrovia Quarentena de Lançamentos • Gerado em: {html.escape(gerado_em)}</div>
-    </footer>
+<body>
+<div class="card">
+    <h1>Agrovia - Quarentena de Lançamentos</h1>
+    <p>A tela de pendências passou a ser online e só abre com login de usuário cadastrado pelo ADM.</p>
+    {estado}
+    <a class="btn" href="{html.escape(URL_LOGIN_QUARENTENA)}">Abrir a quarentena (login)</a>
 </div>
-
-<script>
-const ERROS = {dados};
-const FICHEIROS = {ficheiros_json};
-
-function setViewMode(mode, btn) {{
-    document.querySelectorAll('.actions .btn:not(.btn-print)').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('bodyTag').classList.toggle('mobile-mode', mode === 'mobile');
-}}
-
-function moeda(v) {{
-    if (v === null || v === undefined) return 'sem valor';
-    return v.toLocaleString('pt-BR', {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }});
-}}
-
-function celula(tr, texto, label, classe) {{
-    const td = document.createElement('td');
-    td.textContent = texto;
-    if (label) td.dataset.label = label;
-    if (classe) td.className = classe;
-    tr.appendChild(td);
-    return td;
-}}
-
-function badge(td, sev) {{
-    td.textContent = '';
-    const s = document.createElement('span');
-    s.className = 'badge badge-' + sev;
-    s.textContent = sev;
-    td.appendChild(s);
-}}
-
-function preencherOpcoes(id, valores) {{
-    const sel = document.getElementById(id);
-    [...new Set(valores)].sort().forEach(v => {{ const o = document.createElement('option'); o.textContent = v; sel.appendChild(o); }});
-}}
-
-function renderResumos() {{
-    const tbF = document.querySelector('#tabelaFicheiros tbody');
-    FICHEIROS.forEach(f => {{
-        const tr = document.createElement('tr');
-        celula(tr, f.ficheiro, 'Ficheiro'); celula(tr, f.bloqueantes, 'Bloqueantes', 'num'); celula(tr, f.avisos, 'Avisos', 'num');
-        const td = celula(tr, '', 'Decisão');
-        const s = document.createElement('span');
-        s.className = 'badge ' + (f.decisao.startsWith('PROMOVIDO') || f.decisao.startsWith('APTO') ? 'badge-ok' : 'badge-BLOQUEANTE');
-        s.textContent = f.decisao;
-        td.appendChild(s);
-        tbF.appendChild(tr);
-    }});
-    if (!FICHEIROS.length) tbF.innerHTML = '<tr><td colspan="4" class="empty">Nenhum ficheiro em dados/entrada_quarentena.</td></tr>';
-
-    const porOp = {{}}, porRegra = {{}};
-    ERROS.forEach(e => {{
-        porOp[e.operador] = porOp[e.operador] || {{ BLOQUEANTE: 0, AVISO: 0 }};
-        porOp[e.operador][e.severidade]++;
-        const k = e.regra + '|' + e.severidade;
-        porRegra[k] = (porRegra[k] || 0) + 1;
-    }});
-    const tbO = document.querySelector('#tabelaOperador tbody');
-    Object.entries(porOp).sort((a, b) => (b[1].BLOQUEANTE - a[1].BLOQUEANTE) || (b[1].AVISO - a[1].AVISO)).forEach(([op, c]) => {{
-        const tr = document.createElement('tr');
-        celula(tr, op); celula(tr, c.BLOQUEANTE, null, 'num'); celula(tr, c.AVISO, null, 'num');
-        tbO.appendChild(tr);
-    }});
-    const tbR = document.querySelector('#tabelaRegra tbody');
-    Object.entries(porRegra).sort((a, b) => b[1] - a[1]).forEach(([k, n]) => {{
-        const [regra, sev] = k.split('|');
-        const tr = document.createElement('tr');
-        celula(tr, regra); badge(celula(tr, ''), sev); celula(tr, n, null, 'num');
-        tbR.appendChild(tr);
-    }});
-    if (!ERROS.length) {{
-        tbO.innerHTML = '<tr><td colspan="3" class="empty">Sem pendências.</td></tr>';
-        tbR.innerHTML = '<tr><td colspan="3" class="empty">Sem pendências.</td></tr>';
-    }}
-}}
-
-function renderPendencias() {{
-    const sev = document.getElementById('fSeveridade').value;
-    const op = document.getElementById('fOperador').value;
-    const fic = document.getElementById('fFicheiro').value;
-    const busca = document.getElementById('fBusca').value.trim().toLowerCase();
-    const tb = document.querySelector('#tabelaPendencias tbody');
-    tb.innerHTML = '';
-    const filtrados = ERROS.filter(e =>
-        (!sev || e.severidade === sev) && (!op || e.operador === op) && (!fic || e.ficheiro === fic) &&
-        (!busca || [e.nr_unico, e.parceiro, e.historico, e.regra, e.placa_erp, e.detalhe].join(' ').toLowerCase().includes(busca))
-    );
-    filtrados.forEach(e => {{
-        const tr = document.createElement('tr');
-        tr.className = 'sev-' + e.severidade;
-        celula(tr, '[  ]', 'OK', 'check');
-        badge(celula(tr, '', 'Severidade', 'c-sev'), e.severidade);
-        celula(tr, e.regra, 'Regra', 'c-regra');
-        celula(tr, e.nr_unico, 'Nro Único', 'c-nr');
-        celula(tr, e.ficheiro + ' : ' + e.linha, 'Ficheiro : linha', 'c-fic');
-        celula(tr, e.data, 'Data', 'c-data nowrap');
-        celula(tr, e.parceiro, 'Parceiro', 'c-parc');
-        celula(tr, e.operador, 'Operador', 'c-op');
-        celula(tr, moeda(e.valor), 'Valor (R$)', 'c-valor num');
-        celula(tr, e.placa_erp + (e.detalhe ? ' | ' + e.detalhe : ''), 'Placa / Detalhe', 'c-placa');
-        celula(tr, e.acao, 'Ação esperada', 'c-acao acao');
-        celula(tr, e.status || 'Pendente', 'Status', 'c-status');
-        celula(tr, e.historico || '', 'Histórico', 'c-hist');
-        tr.title = e.historico || '';
-        tb.appendChild(tr);
-    }});
-    if (!filtrados.length) tb.innerHTML = '<tr><td colspan="12" class="empty">Nenhuma pendência com estes filtros.</td></tr>';
-    document.getElementById('contagem').textContent = filtrados.length + ' de ' + ERROS.length + ' pendências';
-}}
-
-preencherOpcoes('fOperador', ERROS.map(e => e.operador));
-preencherOpcoes('fFicheiro', ERROS.map(e => e.ficheiro));
-['fSeveridade', 'fOperador', 'fFicheiro', 'fBusca'].forEach(id => {{
-    const el = document.getElementById(id);
-    el.addEventListener('input', renderPendencias);
-    el.addEventListener('change', renderPendencias);
-}});
-renderResumos();
-renderPendencias();
-if (window.matchMedia('(max-width: 768px)').matches) {{
-    setViewMode('mobile', document.querySelectorAll('.actions .btn')[1]);
-}}
-</script>
 </body>
 </html>
 """
@@ -589,12 +265,23 @@ def main() -> int:
         print(f" {nome}: {n_bloq} bloqueante(s), {n_aviso} aviso(s) -> {decisao}")
 
     caminho_xlsx = gravar_xlsx(erros_todos, resumo_ficheiros, gerado_em)
-    gerar_html(erros_todos, resumo_ficheiros, gerado_em, args.sem_promover)
+
+    modo = "Simulação (--sem-promover): nada foi movido" if args.sem_promover else "Execução real"
+    try:
+        mensagem_envio = publicar_quarentena(erros_todos, calcular_resumo(erros_todos, resumo_ficheiros, gerado_em, modo))
+        envio_ok = True
+    except RuntimeError as exc:
+        mensagem_envio, envio_ok = str(exc), False
+    gerar_atalho_html(gerado_em, envio_ok, mensagem_envio)
+    log.append(f"  Tela online: {mensagem_envio}" if envio_ok else f"  [AVISO] Quarentena online não atualizada: {mensagem_envio}")
     registar_log(log)
 
     print("-" * 100)
     print(f" Planilha do operador : saidas\\relatorios_auditoria\\{os.path.basename(caminho_xlsx)}")
-    print(f" Resumo visual (HTML) : saidas\\relatorios_auditoria\\{os.path.basename(CAMINHO_HTML)}")
+    if envio_ok:
+        print(f" Tela online (login)  : {URL_LOGIN_QUARENTENA} - {mensagem_envio}")
+    else:
+        print(f" [AVISO] Tela online NÃO atualizada: {mensagem_envio}")
     print(f" Log                  : saidas\\relatorios_auditoria\\{os.path.basename(CAMINHO_LOG)}")
     print("=" * 100)
 

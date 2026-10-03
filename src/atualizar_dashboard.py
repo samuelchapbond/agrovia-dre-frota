@@ -190,18 +190,50 @@ def carregar_abastecimento(caminho_arquivo):
             return df, col_placa, col_data, col_hod, col_lit
     return None
 
+def apurar_km_litros_por_ano(abast, placa):
+    """Km e litros de consumo por ano civil: {'AAAA': {'km': float, 'litros': float}}.
+
+    Cada abastecimento leva para o seu ano o km desde o abastecimento anterior e os litros
+    que repôs; o 1.º abastecimento não leva nada (tanque cheio). Sem recuos, a soma dos anos
+    é igual ao km total (hodómetro máx - mín). Exige data em todos os registos.
+    """
+    if abast['data'].isna().any():
+        registar_log("PENDENTE", f"Abastecimento {placa}: {int(abast['data'].isna().sum())} registos sem data; CPK e Km/L por ano = 'Sem dado'.")
+        return {}
+    if (abast['hodometro'].diff() < 0).any():
+        registar_log("PENDENTE", f"Abastecimento {placa}: hodómetro recua; CPK e Km/L por ano = 'Sem dado'.")
+        return {}
+
+    trechos = pd.DataFrame({
+        'ano': abast['data'].dt.year.astype(str),
+        'km': abast['hodometro'].diff(),
+        'litros': abast['litros'],
+    }).iloc[1:]
+
+    por_ano = {}
+    for ano, grupo in trechos.groupby('ano'):
+        km_ano = float(grupo['km'].sum())
+        litros_ano = float(grupo['litros'].sum())
+        if km_ano <= 0 or litros_ano <= 0:
+            registar_log("PENDENTE", f"Abastecimento {placa} {ano}: km {km_ano:.0f} / litros {litros_ano:.2f}; CPK e Km/L de {ano} = 'Sem dado'.")
+            continue
+        por_ano[ano] = {'km': round(km_ano, 1), 'litros': round(litros_ano, 2)}
+        registar_log("INFO", f"Abastecimento {placa} {ano}: {len(grupo)} trechos | km rodado {km_ano:.0f} | litros consumo {litros_ano:.2f}")
+    return por_ano
+
 def apurar_km_litros(placa):
     """Km rodado e litros da placa a partir dos relatórios de abastecimento.
 
     Km rodado = hodómetro máximo - hodómetro mínimo no período.
     Litros para Km/L = soma dos litros sem o 1.º abastecimento (método tanque cheio:
     esse combustível foi gasto antes do primeiro hodómetro registado).
-    Devolve (km_rodado, litros_total, litros_consumo) ou (None, None, None) sem fonte válida.
+    Devolve (km_rodado, litros_total, litros_consumo, por_ano) ou (None, None, None, {}) sem fonte válida;
+    por_ano vem de apurar_km_litros_por_ano.
     """
     arquivos = listar_ficheiros_abastecimento()
     if not arquivos:
         registar_log("PENDENTE", "Sem relatório de abastecimento em dados/banco_de_dados: CPK e Km/L = 'Sem dado'.")
-        return None, None, None
+        return None, None, None, {}
 
     partes = []
     for arq in arquivos:
@@ -226,7 +258,7 @@ def apurar_km_litros(placa):
 
     if not partes:
         registar_log("PENDENTE", "Nenhum relatório de abastecimento utilizável: CPK e Km/L = 'Sem dado'.")
-        return None, None, None
+        return None, None, None, {}
 
     abast = pd.concat(partes, ignore_index=True)
     invalidas = abast['hodometro'].isna() | (abast['hodometro'] <= 0) | abast['litros'].isna() | (abast['litros'] <= 0)
@@ -236,7 +268,7 @@ def apurar_km_litros(placa):
 
     if len(abast) < 2:
         registar_log("PENDENTE", f"Abastecimento {placa}: menos de 2 registos válidos; CPK e Km/L = 'Sem dado'.")
-        return None, None, None
+        return None, None, None, {}
 
     ordem = ['data', 'hodometro'] if abast['data'].notna().all() else ['hodometro']
     abast = abast.sort_values(ordem).reset_index(drop=True)
@@ -257,8 +289,8 @@ def apurar_km_litros(placa):
         f"(consumo {litros_consumo:.2f}){periodo}"
     )
     if km_rodado <= 0:
-        return None, None, None
-    return km_rodado, litros_total, litros_consumo
+        return None, None, None, {}
+    return km_rodado, litros_total, litros_consumo, apurar_km_litros_por_ano(abast, placa)
 
 def main():
     print("="*80)
@@ -440,7 +472,13 @@ def main():
                 'data': row['data_str'], 'ano_mes': row['ano_mes'], 'parceiro': row['parceiro'], 'natureza': row['natureza'], 'valor': val, 'nr_unico': row['nr_unico'], 'placa': row['placa']
             })
 
-        km_rodado, _, litros_consumo = apurar_km_litros(PLACA_FROTA_PRINCIPAL)
+        custos_categoria_por_ano = {}
+        for cat_nome, dados_cat in despesas_por_cat.items():
+            for linha in dados_cat['linhas']:
+                por_cat = custos_categoria_por_ano.setdefault(linha['ano_mes'][:4], {})
+                por_cat[cat_nome] = round(por_cat.get(cat_nome, 0.0) + linha['valor'], 2)
+
+        km_rodado, _, litros_consumo, km_litros_por_ano = apurar_km_litros(PLACA_FROTA_PRINCIPAL)
         cpk_calculado = (total_despesa / km_rodado) if km_rodado else None
         km_por_litro = (km_rodado / litros_consumo) if km_rodado and litros_consumo else None
 
@@ -468,7 +506,7 @@ def main():
     desp_fmt = fmt_brl(total_despesa)
     res_abs = fmt_brl(abs(resultado_liquido))
     res_fmt = f"R$ -{res_abs.replace('R$ ', '')}" if resultado_liquido < 0 else res_abs
-    margem_fmt = f"{margem_liquida:.2f}%"
+    margem_fmt = f"{margem_liquida:.2f}%".replace('.', ',')
     cpk_fmt = fmt_brl(cpk_calculado) if cpk_calculado is not None else "Sem dado"
     consumo_fmt = f"{km_por_litro:.2f} Km/L".replace('.', ',') if km_por_litro is not None else "Sem dado"
 
@@ -476,9 +514,6 @@ def main():
 
     html_final = re.sub(r'Atualizado em: \d{2}/\d{2}/\d{4} às \d{2}:\d{2}', f"Atualizado em: {data_hoje}", html_final)
     html_final = re.sub(r'Agrovia DRE Master v[\d\.]+', f'Agrovia DRE Master {VERSAO_ATUAL}', html_final)
-
-    estado_quarentena = "presente" if os.path.exists(os.path.join(PASTA_RELATORIOS, "pendencias_lancamentos.html")) else "ausente"
-    html_final = re.sub(r'(id="btnQuarentena"[^>]*data-relatorio=")\w+"', rf'\g<1>{estado_quarentena}"', html_final)
 
     html_final = re.sub(r'class="kpi-value kpi-receita-bruta">[^<]+<', f'class="kpi-value kpi-receita-bruta">{rec_fmt}<', html_final)
     html_final = re.sub(r'class="kpi-value kpi-custo-total">[^<]+<', f'class="kpi-value kpi-custo-total">{desp_fmt}<', html_final)
@@ -490,7 +525,13 @@ def main():
     str_rec_mes = json.dumps(receitas_por_mes)
     str_desp_mes = json.dumps(despesas_por_mes)
     str_labels_mes = json.dumps(labels_grafico)
+    str_meses_grafico = json.dumps(meses_grafico)
 
+    html_final = re.sub(r'const MESES_GRAFICO = \[[^\]]*\];', lambda m: f"const MESES_GRAFICO = {str_meses_grafico};", html_final, count=1)
+    str_km_litros_ano = json.dumps(km_litros_por_ano)
+    str_custos_cat_ano = json.dumps(custos_categoria_por_ano, ensure_ascii=False)
+    html_final = re.sub(r'const KM_LITROS_POR_ANO = \{[^;]*\};', lambda m: f"const KM_LITROS_POR_ANO = {str_km_litros_ano};", html_final, count=1)
+    html_final = re.sub(r'const CUSTOS_CATEGORIA_POR_ANO = \{[^;]*\};', lambda m: f"const CUSTOS_CATEGORIA_POR_ANO = {str_custos_cat_ano};", html_final, count=1)
     html_final = re.sub(r'(new Chart\(ctxMain,[\s\S]*?labels:\s*)\[[^\]]*\]', lambda m: m.group(1) + str_labels_mes, html_final, count=1)
     html_final = re.sub(r'label:\s*\'Receita Bruta\',\s*data:\s*\[[^\]]*\]', f"label: 'Receita Bruta', data: {str_rec_mes}", html_final)
     html_final = re.sub(r'label:\s*\'Custo Total Frota\',\s*data:\s*\[[^\]]*\]', f"label: 'Custo Total Frota', data: {str_desp_mes}", html_final)

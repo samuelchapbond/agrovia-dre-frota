@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Agrovia - Criar a sua senha</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="acesso.css">
+</head>
+<body>
+<main class="centro" id="raiz">
+    <div class="caixa" id="conteudo" hidden>
+        <div class="card marca">
+            <h1><i class="fa-solid fa-key"></i> Criar a sua senha</h1>
+            <p class="sub">Olá, <strong id="nomeUsuario"></strong>. No primeiro acesso, troque a senha provisória por uma só sua.</p>
+        </div>
+        <div class="card">
+            <form id="formTroca" novalidate>
+                <input type="text" name="username" id="campoUsuario" autocomplete="username" hidden>
+                <label>Senha provisória
+                    <input id="senhaAtual" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" required placeholder="••••••">
+                </label>
+                <label>Nova senha (6 dígitos)
+                    <input id="senhaNova" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" required placeholder="••••••">
+                </label>
+                <label>Confirmar nova senha
+                    <input id="senhaConfirma" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" required placeholder="••••••">
+                </label>
+                <div id="mensagem" class="mensagem" hidden></div>
+                <button id="btnTrocar" class="btn btn-principal" type="submit"><i class="fa-solid fa-check"></i> Guardar e entrar</button>
+                <p class="dica">Evite sequências óbvias (123456, 000000) e datas de nascimento.</p>
+            </form>
+        </div>
+        <button id="btnSair" class="btn btn-perigo" type="button"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+    </div>
+</main>
+
+<script type="module">
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword }
+    from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { configurado, db, PADRAO_SENHA, exigirSessao, sair, mensagemErro, mostrarMensagem, avisoNaoConfigurado }
+    from "./acesso_comum.js";
+
+const OBVIAS = new Set(["000000", "111111", "222222", "333333", "444444", "555555", "666666", "777777",
+                        "888888", "999999", "123456", "654321", "012345", "543210", "123123", "112233"]);
+
+if (!configurado) {
+    avisoNaoConfigurado(document.getElementById("raiz"));
+} else {
+    const sessao = await exigirSessao("trocar");
+    if (sessao) {
+        const { usuario, perfil } = sessao;
+        document.getElementById("nomeUsuario").textContent = perfil.nome || perfil.apelido;
+        document.getElementById("campoUsuario").value = perfil.apelido;
+        document.getElementById("conteudo").hidden = false;
+        document.getElementById("btnSair").addEventListener("click", sair);
+        const msg = document.getElementById("mensagem");
+
+        document.getElementById("formTroca").addEventListener("submit", async ev => {
+            ev.preventDefault();
+            const atual = document.getElementById("senhaAtual").value.trim();
+            const nova = document.getElementById("senhaNova").value.trim();
+            const confirma = document.getElementById("senhaConfirma").value.trim();
+            if (!PADRAO_SENHA.test(nova)) return mostrarMensagem(msg, "A nova senha tem de ter exatamente 6 dígitos.");
+            if (nova !== confirma) return mostrarMensagem(msg, "A confirmação não coincide com a nova senha.");
+            if (nova === atual) return mostrarMensagem(msg, "A nova senha tem de ser diferente da provisória.");
+            if (OBVIAS.has(nova)) return mostrarMensagem(msg, "Senha demasiado óbvia. Escolha outra.");
+
+            const btn = document.getElementById("btnTrocar");
+            btn.disabled = true;
+            mostrarMensagem(msg, "A guardar...", "info");
+            try {
+                await reauthenticateWithCredential(usuario, EmailAuthProvider.credential(usuario.email, atual));
+                await updatePassword(usuario, nova);
+                await updateDoc(doc(db, "perfis", usuario.uid), { deve_trocar_senha: false, senha_trocada_em: serverTimestamp() });
+                mostrarMensagem(msg, "Senha criada. A abrir a quarentena...", "ok");
+                setTimeout(() => location.replace("quarentena.html"), 800);
+            } catch (erro) {
+                const codigo = erro && erro.code;
+                const texto = ["auth/invalid-credential", "auth/wrong-password", "auth/invalid-login-credentials"].includes(codigo)
+                    ? "A senha provisória está errada." : mensagemErro(erro);
+                mostrarMensagem(msg, texto);
+                btn.disabled = false;
+            }
+        });
+    }
+}
+</script>
+</body>
+</html>

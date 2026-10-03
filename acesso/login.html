@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Agrovia - Acesso à Quarentena</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="acesso.css">
+</head>
+<body>
+<main class="centro" id="raiz">
+    <div class="caixa">
+        <div class="card marca">
+            <h1><i class="fa-solid fa-shield-halved"></i> Agrovia - Quarentena</h1>
+            <p class="sub">Acesso restrito a usuários cadastrados pelo ADM</p>
+        </div>
+        <div class="card">
+            <form id="formLogin" novalidate>
+                <label>Usuário / apelido
+                    <input id="apelido" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="ex.: chapbond">
+                </label>
+                <label>Senha (6 dígitos)
+                    <input id="senha" name="password" type="password" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="current-password" required placeholder="••••••">
+                </label>
+                <div id="mensagem" class="mensagem" hidden></div>
+                <button id="btnEntrar" class="btn btn-principal" type="submit"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
+                <p class="dica">Primeiro acesso: use a senha provisória que o ADM lhe passou. Em seguida vai criar a sua senha.</p>
+            </form>
+        </div>
+        <a class="btn" href="../index.html"><i class="fa-solid fa-arrow-left"></i> Voltar ao painel</a>
+    </div>
+</main>
+
+<script type="module">
+import { signInWithEmailAndPassword, setPersistence, browserSessionPersistence, onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { configurado, auth, apelidoParaEmail, normalizarApelido, PADRAO_APELIDO, PADRAO_SENHA,
+         mensagemErro, mostrarMensagem, avisoNaoConfigurado, lerPerfil } from "./acesso_comum.js";
+
+const msg = document.getElementById("mensagem");
+const MOTIVOS = {
+    sem_acesso: "Este usuário não tem acesso ativo. Fale com o ADM.",
+};
+
+function destinoPorPerfil(perfil) {
+    return perfil.deve_trocar_senha ? "trocar_senha.html" : "quarentena.html";
+}
+
+if (!configurado) {
+    avisoNaoConfigurado(document.getElementById("raiz"));
+} else {
+    const motivo = new URLSearchParams(location.search).get("motivo");
+    if (MOTIVOS[motivo]) mostrarMensagem(msg, MOTIVOS[motivo]);
+
+    const parar = onAuthStateChanged(auth, usuario => {
+        parar();
+        if (usuario) location.replace("quarentena.html");
+    });
+
+    document.getElementById("formLogin").addEventListener("submit", async ev => {
+        ev.preventDefault();
+        const apelido = normalizarApelido(document.getElementById("apelido").value);
+        const senha = document.getElementById("senha").value.trim();
+        if (!PADRAO_APELIDO.test(apelido) || !PADRAO_SENHA.test(senha)) {
+            mostrarMensagem(msg, "Usuário ou senha inválidos.");
+            return;
+        }
+        const btn = document.getElementById("btnEntrar");
+        btn.disabled = true;
+        mostrarMensagem(msg, "A verificar...", "info");
+        try {
+            await setPersistence(auth, browserSessionPersistence);
+            const cred = await signInWithEmailAndPassword(auth, apelidoParaEmail(apelido), senha);
+            const perfil = await lerPerfil(cred.user.uid);
+            if (!perfil || perfil.ativo !== true) {
+                await signOut(auth);
+                mostrarMensagem(msg, MOTIVOS.sem_acesso);
+                return;
+            }
+            location.replace(destinoPorPerfil(perfil));
+        } catch (erro) {
+            mostrarMensagem(msg, mensagemErro(erro));
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+</script>
+</body>
+</html>

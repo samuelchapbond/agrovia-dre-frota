@@ -1,0 +1,100 @@
+/* Estilo das telas de acesso (login, troca de senha, ADM). Paleta igual a templates/template.html. */
+:root {
+    --bg-color: #0f1e17;
+    --card-bg: #162c22;
+    --border-color: rgba(46, 204, 113, 0.25);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-purple: #a3e635;
+    --accent-pink: #2ecc71;
+    --accent-green: #34d399;
+    --accent-yellow: #fbbf24;
+    --accent-orange: #fb923c;
+    --accent-red: #f87171;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-color); color: var(--text-primary); margin: 0; padding: 15px; min-height: 100vh;
+}
+.card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+h1 { margin: 0; font-size: 20px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { margin: 0 0 12px; font-size: 15px; color: var(--accent-purple); }
+p { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+code { color: var(--accent-yellow); }
+
+/* Tela centrada (login e troca de senha) */
+.centro { min-height: calc(100vh - 30px); display: flex; align-items: center; justify-content: center; }
+.caixa { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; }
+.marca { text-align: center; }
+.marca .sub { margin: 6px 0 0; font-size: 12px; color: var(--text-secondary); }
+
+form { display: flex; flex-direction: column; gap: 12px; }
+label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; display: flex; flex-direction: column; gap: 6px; }
+input, select {
+    background: rgba(10,23,17,0.9); color: var(--text-primary); border: 1px solid var(--border-color);
+    border-radius: 8px; padding: 11px 12px; font-size: 16px; font-family: inherit; width: 100%;
+}
+input:focus, select:focus { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
+.linha-input { display: flex; gap: 8px; }
+.linha-input input { flex: 1; }
+
+.btn {
+    background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.3); color: var(--accent-blue);
+    padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; font-family: inherit;
+    text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;
+}
+.btn:hover { background: var(--accent-blue); color: #0f1e17; }
+.btn:disabled { opacity: 0.5; cursor: wait; }
+.btn-principal { background: var(--accent-purple); border-color: var(--accent-purple); color: #0f1e17; padding: 12px; font-size: 14px; }
+.btn-principal:hover { background: var(--accent-green); border-color: var(--accent-green); }
+.btn-perigo { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.45); color: var(--accent-red); }
+.btn-perigo:hover { background: var(--accent-red); color: #0f1e17; }
+.btn-pequeno { padding: 6px 10px; font-size: 11px; }
+
+.mensagem { font-size: 13px; padding: 10px 12px; border-radius: 8px; line-height: 1.45; }
+.mensagem.erro { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.45); color: var(--accent-red); }
+.mensagem.ok { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.45); color: var(--accent-green); }
+.mensagem.info { background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.3); color: var(--text-primary); }
+.dica { font-size: 12px; color: var(--text-secondary); margin: 0; }
+.aviso-config { max-width: 520px; margin: 40px auto; }
+
+/* Tela do ADM */
+.pagina { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+header.card { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+header .sub { margin: 5px 0 0; font-size: 12px; color: var(--text-secondary); }
+.acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+.grade-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end; }
+.resultado-cadastro { margin-top: 14px; }
+.resultado-cadastro pre { white-space: pre-wrap; margin: 8px 0; font-family: inherit; font-size: 13px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 9px 10px; border-bottom: 1px solid var(--border-color); text-align: left; vertical-align: middle; }
+th { background: rgb(19,44,34); color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+td .acoes { gap: 6px; }
+.badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
+.badge-ok { background: rgba(52,211,153,0.15); color: var(--accent-green); border: 1px solid rgba(52,211,153,0.45); }
+.badge-aviso { background: rgba(251,191,36,0.15); color: var(--accent-yellow); border: 1px solid rgba(251,191,36,0.45); }
+.badge-bloq { background: rgba(248,113,113,0.18); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.5); }
+.badge-adm { background: rgba(163,230,53,0.15); color: var(--accent-purple); border: 1px solid rgba(163,230,53,0.45); }
+.vazio { text-align: center; color: var(--text-secondary); padding: 20px; }
+
+footer.card { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; font-size: 12px; color: var(--text-secondary); padding: 15px; }
+.footer-left { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; }
+.footer-left span { color: var(--accent-purple); font-weight: 700; }
+
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    header.card { flex-direction: column; align-items: stretch; }
+    .acoes { display: grid; grid-template-columns: 1fr 1fr; }
+    #tabelaUsuarios thead { display: none; }
+    #tabelaUsuarios, #tabelaUsuarios tbody, #tabelaUsuarios tr, #tabelaUsuarios td { display: block; width: 100%; }
+    #tabelaUsuarios tr { background: rgba(10,23,17,0.45); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 10px; padding: 10px 12px; }
+    #tabelaUsuarios td { border: none; padding: 4px 0; }
+    #tabelaUsuarios td::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+    #tabelaUsuarios td.vazio::before { content: none; }
+    footer.card { flex-direction: column; align-items: flex-start; }
+}
