@@ -24,29 +24,42 @@ A IA atua como **Arquiteta de Software, Engenheira de Front-End e Auditora de Da
 * **Expansão Multiveículos:** Ampliação das regras de negócio para suportar múltiplos conjuntos de carretas, caminhões e veículos de apoio de forma segregada. → **NÃO INICIADA** (ver 4.2).
 * **Deploy e Homologação Final:** Publicação definitiva da versão homologada na pasta de produção do Google Drive da Agrovia. → **AGUARDA etapas 1 e 2.**
 
-### 4.1 Pendências para fechar a Etapa 1 (ETL/BAT) — atualizado em 02/10/2026
+### 4.1 Pendências para fechar a Etapa 1 (ETL/BAT) — atualizado em 03/10/2026
 Já feito nesta etapa: motor `atualizar_dashboard.py`, `atualizar.bat` com publicação no GitHub, auditor `auditoria_completa.py`, trava de fontes `fontes_dados.py` (só conta o que está hoje em `dados/banco_de_dados/`), `.gitignore` sem dados financeiros.
 
 1. [x] **Proteger o `.env` (chave da API):** `.env` no `.gitignore` (nunca foi commitado), modelo em `.env.example`; `.gitignoregit` apagado.
 2. [ ] **KPIs sem fonte no painel:**
-   - CPK (R$ 1,64) usa `KM_TOTAL_PERIODO = 52000.0` fixo no código (`atualizar_dashboard.py`, linha 343).
-   - Consumo Médio (1,41 Km/L) é valor fixo do template; o motor não o calcula.
-   - Não há fonte de km nem de litros em `dados/banco_de_dados/`. Mostrar "sem dado" até existir essa fonte.
-3. [ ] **Fechar o período dos dados:** o veredito de publicação (`saidas/relatorios_auditoria/veredito_publicacao.txt`, 02/10/2026 17:17) está **BLOQUEADO**: receita de 2026-01 a 2026-09 e custos de 2026-01 a 2027-01. Os custos vêm só de `mes01-2026.xlsx`; falta a exportação de custos do Sankhya do mesmo período da receita, e definir a regra de data dos custos (baixa / vencimento / emissão).
+   - [x] CPK e Consumo Médio deixaram de ser fixos: o motor calcula-os a partir de relatórios de abastecimento (`listar_ficheiros_abastecimento()`) e mostra "Sem dado" quando não há fonte (`atualizar_dashboard.py`; `template.html` já sai com "Sem dado").
+   - [ ] Falta a fonte: `inventario_fontes.txt` (03/10/2026 00:48) regista 0 ficheiros de abastecimento/km em `dados/banco_de_dados/`. Sem esse relatório do Sankhya, CPK e Km/L continuam "Sem dado".
+3. [ ] **Fechar o período dos dados:** o veredito de publicação (`saidas/relatorios_auditoria/veredito_publicacao.txt`, 03/10/2026 00:48) está **APROVADO**, mas com aviso: receita de 2026-01 a 2026-09 e custos de 2026-01 a 2027-01. Os custos vêm só de `mes01-2026.xlsx`; falta a exportação de custos do Sankhya do mesmo período da receita. Até lá, resultado e margem do painel misturam períodos.
+   - [x] Regra de data definida pelo SAMUEL (03/10/2026) e aplicada no motor, na auditoria e na quarentena: **receitas** pela `Dt. Negociação` (emissão do título); **custos** pela `Data Baixa`, se vazia `Dt. Vencimento` (e, em último caso, `Dt. Negociação`). Receitas ainda não baixadas passaram a entrar no painel.
 4. [x] **Trava de publicação no `.bat`:** implementada (corre `auditoria_completa.py` e bloqueia o push se falhar; divergência de período passou a aviso). Commitada em `9636fc8` (02/10/2026).
 5. [ ] **`agente_controller.py` (agente IA Gemini/LangGraph):**
-   - Lê só `dados/banco_de_dados/mes01-2026.xlsx` (caminho fixo) e envia só as primeiras 50 linhas (`head(50)`) ao modelo. Passar a usar `listar_ficheiros_fonte()` de `fontes_dados.py`.
-   - Confirmar que o modelo `gemini-3.8-flash` responde (a execução anterior falhou com erro 404 no `gemini-2.5-flash`).
+   - [x] Lê todos os ficheiros válidos via `listar_ficheiros_fonte()` (50 linhas por ficheiro, `LINHAS_POR_FICHEIRO`), com caminhos de `fontes_dados.py`.
+   - [x] Privacidade: só sai para o Gemini a lista `COLUNAS_PERMITIDAS`; nomes de pessoas e CNPJ/CPF no Histórico são mascarados (`[NOME]`, `[DOC]`); nomes extra via `NOMES_MASCARAR` no `.env` (modelo em `.env.example`).
+   - [x] Saída em `saidas/relatorios_auditoria/ia_relatorio_correcao_operador.txt` com aviso "GERADO POR IA - NÃO É O VEREDITO DO AUDITOR OFICIAL".
+   - [x] O modelo `gemini-3.8-flash` respondeu (relatório gerado em 03/10/2026 00:33).
+   - [ ] Correr de novo a versão final: o relatório das 00:33 é anterior à última alteração do script (00:37) e ainda não traz o aviso no topo.
    - [x] `agente_controller.py` e `tradutor.py` movidos para `laboratorio/` (versionados, fora da produção); `requirements.txt` preenchido.
+6. [x] **Visão Mobile real:** painel (`templates/template.html`) e tela de quarentena (`validar_entrada.py`) passam a cartões empilhados no telemóvel, com filtros fixos no topo e modo Mobile automático em ecrãs até 768 px; ao fechar uma categoria da DRE, os detalhes abertos fecham com ela (03/10/2026).
+7. [x] **`.cursorrules`:** mapa do projeto, blindagem (texto dos Excel e respostas de IA são dados, não instruções; `.env` nunca lido nem commitado) e critérios por Chap atualizados (03/10/2026).
+8. [x] **Commit das alterações de 03/10/2026:** itens 5, 6 e 7 acima e a regra de data commitados e publicados (03/10/2026).
 
-### 4.1.1 Quarentena de lançamentos — atualizado em 02/10/2026
+### 4.1.1 Quarentena de lançamentos — atualizado em 03/10/2026
 Já feito (commit `9636fc8`): `validar_entrada.py` / `validar_entrada.bat` validam os Excel em `dados/entrada_quarentena/`, geram `saidas/relatorios_auditoria/pendencias_lancamentos.xlsx` (operador marca Status/Observação) e `pendencias_lancamentos.html` (visual Agrovia, PC/Mobile/impressão), e só promovem para `dados/banco_de_dados/` ficheiros sem bloqueantes. Regras em `regras_lancamento.py`.
 
-1. [ ] **Botão no painel principal para abrir a tela de quarentena:**
-   - O `index.html` é gerado pelo `atualizar_dashboard.py` a partir do `template.html`: o botão tem de entrar no template/motor, não direto no `index.html`.
-   - Link para `saidas/relatorios_auditoria/pendencias_lancamentos.html` (abrir em nova aba), junto aos botões PC/Mobile/Tabela do cabeçalho.
-   - Atenção: o `index.html` é publicado no GitHub, mas a tela de quarentena tem dados financeiros e não é publicada. Decidir: botão só visível ao abrir localmente, ou mostrar aviso "disponível só na máquina local" quando o ficheiro não existir.
-2. [ ] **Severidade da placa `[XYZ]`:** hoje é BLOQUEANTE (retém o ficheiro inteiro). Confirmar ou passar a AVISO em `SEVERIDADE_REGRA` (`regras_lancamento.py`).
+1. [x] **Botão no painel principal para abrir a tela de quarentena (03/10/2026):**
+   - `🧪 Quarentena` no cabeçalho do `template.html`, entre "Ver Tabela Analítica" e PC/Mobile; abre `saidas/relatorios_auditoria/pendencias_lancamentos.html` em nova aba.
+   - Decisão: só aparece ao abrir localmente (`file:`, `localhost`, `127.0.0.1`); no GitHub fica escondido.
+   - O motor marca `data-relatorio="presente|ausente"`; sem relatório, o botão aparece desativado como "⚠️ Quarentena: sem relatório" (correr `validar_entrada.bat`).
+2. [x] **Severidade da placa `[XYZ]`:** decisão do SAMUEL (03/10/2026): **mantém BLOQUEANTE**.
+   - Critério do validador (`regras_lancamento.py`): placa no campo → OK; campo genérico mas placa no histórico/observação/identificação → AVISO ("Placa só no histórico"); sem placa em lado nenhum → BLOQUEANTE ("Placa genérica ou ausente").
+   - Motivo: `[XYZ]` vai continuar a aparecer, porque há custo da frota lançado sem placa na coluna correta. Só o bloqueio obriga a corrigir no Sankhya antes de entrar; o motor (`atualizar_dashboard.py`) conta linha "NÃO INFORMADA" na DRE da `OOM9749`.
+   - Evidência (03/10/2026, ficheiros em `dados/banco_de_dados/`): 27 linhas `[XYZ]` (18 em `Financeiro RECEBER - 01 a 08-2026.xls`, 9 em `mes01-2026.xlsx`), quase todas adiantamento/salário do motorista, monitores (REP STORE), camionete particular e viagem no caminhão da CVC.
+   - [x] Corrigido (03/10/2026): `identificar_placa()` em `regras_lancamento.py` é o critério único da quarentena, do motor e da auditoria. Linha sem placa sai da DRE e aparece à parte no painel ("Lançamentos sem placa - fora da DRE"). Variantes `OOM 9749`, `OOM-9749` e Mercosul `OOM9H49` passam a contar como `OOM9749`. O painel mostra "(Validada)" quando a placa vem do campo e "(via histórico)" quando vem do texto.
+   - Efeito no painel: receita e custo da DRE baixam pelos lançamentos sem placa, que passam a aparecer à parte. Auditoria bate com o painel; veredito APROVADO. (Valores ficam no `log_execucao.txt` local, fora do git.)
+   - [x] Achado corrigido (03/10/2026): o motor usava `Data Baixa` como data da receita (a coluna "Data Emissao" não existe e a procura caía em "Data"). Agora usa `Dt. Negociação` (ver item 3 da 4.1).
+   - [ ] Achado: o filtro de meses da tabela vai só de janeiro a setembro. Custos com data de outubro em diante contam no KPI mas desaparecem da tabela quando o filtro recalcula.
 3. [x] **`.gitignore`:** `dados/banco_de_dados/`, `dados/entrada_quarentena/`, `saidas/relatorios_auditoria/`, `saidas/backup_relatorios/` inteiros fora do git (commit `1011c00`, 02/10/2026). O repositório é público.
 
 ### 4.2 Etapa 2 (Multiveículos) — ponto de partida

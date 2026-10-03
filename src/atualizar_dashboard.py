@@ -1,8 +1,8 @@
 import pandas as pd
 import datetime
+import html
 import unicodedata
 import os
-import shutil
 import json
 import sys
 import re
@@ -16,6 +16,7 @@ from fontes_dados import (
     escrever_inventario,
     listar_ficheiros_abastecimento,
 )
+from regras_lancamento import PLACA_FROTA_PRINCIPAL, extrair_placa_do_texto, identificar_placa
 
 VERSAO_ATUAL = "v8.36-RobustAuditEngine"
 
@@ -34,8 +35,6 @@ configurar_stdout_utf8()
 os.makedirs(PASTA_DADOS, exist_ok=True)
 os.makedirs(PASTA_BACKUP, exist_ok=True)
 os.makedirs(PASTA_RELATORIOS, exist_ok=True)
-
-PLACA_FROTA_PRINCIPAL = "OOM9749"
 
 CAMINHO_LOG = os.path.join(PASTA_RELATORIOS, "log_execucao.txt")
 CAMINHO_LOG_HISTORICO = os.path.join(PASTA_BACKUP, "log_execucao_historico.txt")
@@ -64,8 +63,6 @@ def registar_log(status, mensagem):
         pass
     print(linha_log.strip())
 
-PLACEHOLDERS_PLACA = {"", "N/D", "NAN", "NONE", "NULL", "N/A", "NA", "[XYZ]", "-", "0", "SEM PLACA"}
-
 def limpar_texto(texto):
     if pd.isna(texto):
         return ""
@@ -85,18 +82,6 @@ def celula_texto(valor) -> str:
     if texto.lower() in {"nan", "nat", "none", "null"}:
         return ""
     return texto
-
-PADRAO_PLACA = re.compile(
-    r'(?<![A-Z0-9])([A-Z]{3}-?[0-9][A-Z0-9][0-9]{2})(?![A-Z0-9])'
-)
-
-def extrair_placa_do_texto(texto):
-    if not texto:
-        return None
-    match = PADRAO_PLACA.search(str(texto).upper())
-    if match:
-        return match.group(1).replace("-", "")
-    return None
 
 def remover_duplicados_entre_ficheiros(df: pd.DataFrame, col_nr_unico) -> pd.DataFrame:
     if not col_nr_unico or col_nr_unico not in df.columns:
@@ -308,7 +293,8 @@ def main():
         col_placa = encontrar_coluna(df_global, ['Placa', 'Marca [Placa]', 'Veiculo', 'Frota', 'Equipamento'])
         col_parceiro = encontrar_coluna_parceiro(df_global)
 
-        col_emissao = encontrar_coluna(df_global, ['Data Emissao', 'Emissao', 'Data Movimento', 'Data'])
+        # Receita: Dt. Negociação (emissão do título). Sem o genérico 'Data', que apanhava 'Data Baixa'.
+        col_emissao = encontrar_coluna(df_global, ['Dt. Negociação', 'Dt. Negociacao', 'Data Negociação', 'Data Emissao', 'Emissao'])
         col_baixa = encontrar_coluna(df_global, ['Data Baixa', 'Baixa'])
         col_vencimento = encontrar_coluna(df_global, ['Data Vencimento', 'Vencimento'])
 
@@ -316,6 +302,7 @@ def main():
         df_frota['Valor_Numerico'] = pd.to_numeric(df_frota[col_valor], errors='coerce').fillna(0.0)
 
         dados_filtrados = []
+        lancamentos_sem_placa = []
 
         for _, row in df_frota.iterrows():
             val = row['Valor_Numerico']
@@ -352,28 +339,22 @@ def main():
             if pd.isna(dt_parsed):
                 continue
 
-            # Validação de Placa: campo ERP, depois placas ocultas no histórico/obs/identificação
             placa_erp = celula_texto(row[col_placa]) if col_placa and col_placa in df_frota.columns else ""
-            placa_erp_limpa = placa_erp.strip().upper()
-            erp_sem_placa = (
-                placa_erp_limpa in PLACEHOLDERS_PLACA
-                or placa_erp_limpa.startswith("[")
-            )
-            placa_final = (
-                extrair_placa_do_texto(placa_erp)
-                or extrair_placa_do_texto(texto_completo)
-            )
-            if not placa_final:
-                placa_final = "NÃO INFORMADA" if erp_sem_placa else placa_erp
-
-            placa_upper_check = placa_final.upper()
-            # Se for outro veículo, exclui do DRE principal da frota
-            if placa_upper_check not in ["NÃO INFORMADA", "N/A", "N/D"] and PLACA_FROTA_PRINCIPAL not in placa_upper_check:
-                continue
-
-            placa_exibicao = f"{PLACA_FROTA_PRINCIPAL} (Validada)" if PLACA_FROTA_PRINCIPAL in placa_upper_check else placa_final
+            placa, origem_placa = identificar_placa(placa_erp, texto_completo)
             nr_u = str(row[col_nr_unico]).split('.')[0] if col_nr_unico and col_nr_unico in df_frota.columns and pd.notna(row[col_nr_unico]) else "N/D"
             parceiro_val = str(row[col_parceiro]) if col_parceiro and col_parceiro in df_frota.columns and pd.notna(row[col_parceiro]) else (hist if hist else nat)
+
+            # Sem placa = BLOQUEANTE na quarentena: fica fora da DRE até corrigir no Sankhya
+            if not placa:
+                lancamentos_sem_placa.append({
+                    'data': dt_parsed.strftime('%d/%m/%Y'), 'mes': f"{int(dt_parsed.month):02d}", 'valor': val,
+                    'nr_unico': nr_u, 'parceiro': parceiro_val, 'historico': hist or nat,
+                })
+                continue
+            if placa != PLACA_FROTA_PRINCIPAL:
+                continue
+
+            placa_exibicao = f"{PLACA_FROTA_PRINCIPAL} (Validada)" if origem_placa == "campo" else f"{PLACA_FROTA_PRINCIPAL} (via histórico)"
 
             dados_filtrados.append({
                 'data_str': dt_parsed.strftime('%d/%m/%Y'),
@@ -387,6 +368,15 @@ def main():
             })
 
         df_processado = pd.DataFrame(dados_filtrados)
+
+        if lancamentos_sem_placa:
+            positivos = sum(l['valor'] for l in lancamentos_sem_placa if l['valor'] > 0)
+            negativos = sum(l['valor'] for l in lancamentos_sem_placa if l['valor'] < 0)
+            registar_log(
+                "PENDENTE",
+                f"{len(lancamentos_sem_placa)} lançamentos sem placa fora da DRE (valores positivos R$ {positivos:,.2f}, "
+                f"negativos R$ {negativos:,.2f}): corrigir a placa no Sankhya e reexportar."
+            )
 
         if df_processado.empty:
             registar_log("AVISO", "Nenhum registo válido encontrado após aplicar os filtros da frota.")
@@ -471,6 +461,9 @@ def main():
 
     html_final = re.sub(r'Atualizado em: \d{2}/\d{2}/\d{4} às \d{2}:\d{2}', f"Atualizado em: {data_hoje}", html_final)
     html_final = re.sub(r'Agrovia DRE Master v[\d\.]+', f'Agrovia DRE Master {VERSAO_ATUAL}', html_final)
+
+    estado_quarentena = "presente" if os.path.exists(os.path.join(PASTA_RELATORIOS, "pendencias_lancamentos.html")) else "ausente"
+    html_final = re.sub(r'(id="btnQuarentena"[^>]*data-relatorio=")\w+"', rf'\g<1>{estado_quarentena}"', html_final)
 
     html_final = re.sub(r'class="kpi-value kpi-receita-bruta">[^<]+<', f'class="kpi-value kpi-receita-bruta">{rec_fmt}<', html_final)
     html_final = re.sub(r'class="kpi-value kpi-custo-total">[^<]+<', f'class="kpi-value kpi-custo-total">{desp_fmt}<', html_final)
@@ -597,6 +590,25 @@ def main():
                                 <td>(=) RESULTADO / LUCRO LÍQUIDO DO EXERCÍCIO</td>
                                 <td>Resultado Final DRE</td>
                                 <td class="text-right val-resultado-liquido" style="color: {'#f87171' if resultado_liquido < 0 else 'var(--accent-purple);'};">{res_fmt}</td>
+                            </tr>"""
+
+    if lancamentos_sem_placa:
+        html_linhas_tabela += f"""
+                            <!-- FORA DA DRE: SEM PLACA -->
+                            <tr class="row-group" onclick="toggleRow('detail-sem-placa')">
+                                <td><i class="fa-solid fa-chevron-right"></i> (!) LANÇAMENTOS SEM PLACA - FORA DA DRE</td>
+                                <td><span class="badge-cat">Corrigir no Sankhya</span></td>
+                                <td class="text-right" style="color: var(--accent-yellow);">{len(lancamentos_sem_placa)} lançamentos</td>
+                            </tr>"""
+        for l in lancamentos_sem_placa:
+            cor = 'var(--accent-blue)' if l['valor'] > 0 else '#f87171'
+            html_linhas_tabela += f"""
+                            <tr class="row-detail detail-sem-placa" data-mes="{l['mes']}">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>{l['data']}</strong> • N° {l['nr_unico']} • Placa: <strong>NÃO INFORMADA</strong> • <strong>{html.escape(l['parceiro'])}</strong> • {html.escape(l['historico'][:60])}
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: {cor}; font-weight: 600;">{fmt_brl(l['valor'])}</td>
                             </tr>"""
 
     html_final = re.sub(r'<tbody>.*?<\/tbody>', f"<tbody>{html_linhas_tabela}\n                    </tbody>", html_final, flags=re.DOTALL)

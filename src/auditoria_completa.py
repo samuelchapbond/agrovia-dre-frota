@@ -13,7 +13,7 @@ from regras_lancamento import (
     encontrar_coluna_nr_unico,
     encontrar_coluna_operador,
     encontrar_coluna_parceiro,
-    extrair_placa_do_texto,
+    identificar_placa,
     limpar_texto,
     reduzir_historico,
 )
@@ -106,7 +106,8 @@ else:
         col_parceiro = encontrar_coluna_parceiro(df)
         col_operador = encontrar_coluna_operador(df)
         
-        col_emissao = encontrar_coluna(df, ['Data Emissao', 'Emissao', 'Data Movimento', 'Data'])
+        # Receita: Dt. Negociação (emissão do título). Sem o genérico 'Data', que apanhava 'Data Baixa'.
+        col_emissao = encontrar_coluna(df, ['Dt. Negociação', 'Dt. Negociacao', 'Data Negociação', 'Data Emissao', 'Emissao'])
         col_baixa = encontrar_coluna(df, ['Data Baixa', 'Baixa'])
         col_vencimento = encontrar_coluna(df, ['Data Vencimento', 'Vencimento'])
 
@@ -122,6 +123,7 @@ else:
         
         lancamentos_tesou = []
         lancamentos_outros_veiculos = []
+        lancamentos_sem_placa = []
         linhas_ignoradas_lixo = 0
         placas_ocultas_recuperadas = 0
         placas_hifen_normalizadas = 0
@@ -197,31 +199,23 @@ else:
                 })
                 continue
 
-            # Análise da Placa
-            placa_erp = str(row[col_placa]) if col_placa and col_placa in df.columns and pd.notna(row[col_placa]) else ""
-            placa_erp_limpa = placa_erp.strip().upper()
-            
-            erp_sem_placa = placa_erp_limpa in ["", "N/D", "NAN", "NONE", "[XYZ]"] or "[" in placa_erp_limpa
-            
-            placa_final = placa_erp
-            if erp_sem_placa:
-                placa_extraida = extrair_placa_do_texto(texto_completo_para_busca)
-                if placa_extraida:
-                    placa_final = placa_extraida
-                else:
-                    placa_final = "NÃO INFORMADA"
+            # Análise da Placa (mesmo critério da quarentena e do motor)
+            placa_erp = celula_texto(row[col_placa]) if col_placa and col_placa in df.columns else ""
+            placa_final, origem_placa = identificar_placa(placa_erp, texto_completo_para_busca)
 
-            placa_upper_check = placa_final.upper()
-            if placa_upper_check not in ["NÃO INFORMADA", "N/A", "N/D"] and PLACA_FROTA_PRINCIPAL not in placa_upper_check:
+            if not placa_final:
+                lancamentos_sem_placa.append({
+                    'nr_unico': nr_u, 'data': data_str, 'placa': "NÃO INFORMADA", 'valor': val, 'parceiro': parceiro, 'operador': operador, 'historico': hist_reduzido
+                })
+                continue
+
+            if placa_final != PLACA_FROTA_PRINCIPAL:
                 lancamentos_outros_veiculos.append({
                     'nr_unico': nr_u, 'data': data_str, 'placa': placa_final, 'valor': val, 'parceiro': parceiro, 'operador': operador, 'historico': hist_reduzido
                 })
                 continue
 
-            if PLACA_FROTA_PRINCIPAL in placa_upper_check:
-                placa_exibicao = f"{PLACA_FROTA_PRINCIPAL} (Validada)"
-            else:
-                placa_exibicao = placa_final
+            placa_exibicao = f"{PLACA_FROTA_PRINCIPAL} (Validada)" if origem_placa == "campo" else f"{PLACA_FROTA_PRINCIPAL} (via histórico)"
 
             item = {
                 'nr_unico': nr_u, 'data': data_str, 'placa': placa_exibicao, 'valor': val, 'parceiro': parceiro, 'operador': operador, 'historico': hist_reduzido
@@ -242,6 +236,7 @@ else:
         print(f"   * Linhas de lixo/rodapé/zero ignoradas: {linhas_ignoradas_lixo}")
         print(f"   * Lançamentos 'Tesou' isolados: {len(lancamentos_tesou)}")
         print(f"   * Lançamentos de Outros Veículos (Excluídos da Frota): {len(lancamentos_outros_veiculos)}")
+        print(f"   * Lançamentos Sem Placa (Excluídos da Frota até corrigir no Sankhya): {len(lancamentos_sem_placa)}")
         
         total_geral_rec = sum(i['valor'] for i in transacoes_por_categoria['Receita Bruta'])
         total_geral_desp = sum(abs(i['valor']) for cat, lista in transacoes_por_categoria.items() if cat != 'Receita Bruta' for i in lista)
@@ -269,6 +264,15 @@ else:
             print(f"{'NR ÚNICO':<12} | {'DATA':<12} | {'PLACA':<22} | {'VALOR (R$)':<14} | {'PARCEIRO':<20} | {'OPERADOR':<15} | {'HISTÓRICO'}")
             print("-"*145)
             for i in lancamentos_tesou:
+                print(f"{i['nr_unico']:<12} | {i['data']:<12} | {i['placa']:<22} | R$ {i['valor']:>11,.2f} | {i['parceiro']:<20} | {i['operador']:<15} | {i['historico']}")
+
+        if lancamentos_sem_placa:
+            print("\n" + "="*145)
+            print(f" 🟠 LANÇAMENTOS SEM PLACA ({len(lancamentos_sem_placa)} itens - Excluídos da Frota até corrigir a placa no Sankhya)")
+            print("="*145)
+            print(f"{'NR ÚNICO':<12} | {'DATA':<12} | {'PLACA':<22} | {'VALOR (R$)':<14} | {'PARCEIRO':<20} | {'OPERADOR':<15} | {'HISTÓRICO'}")
+            print("-"*145)
+            for i in lancamentos_sem_placa:
                 print(f"{i['nr_unico']:<12} | {i['data']:<12} | {i['placa']:<22} | R$ {i['valor']:>11,.2f} | {i['parceiro']:<20} | {i['operador']:<15} | {i['historico']}")
 
         if lancamentos_outros_veiculos:

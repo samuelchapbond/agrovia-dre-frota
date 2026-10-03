@@ -61,13 +61,27 @@ PADRAO_PLACA = re.compile(
     r'(?<![A-Z0-9])([A-Z]{3}-?[0-9][A-Z0-9][0-9]{2})(?![A-Z0-9])'
 )
 
+def _padrao_variantes_placa(placa):
+    """Aceita hífen ou espaço e o equivalente Mercosul (5.º carácter 0-9 -> A-J)."""
+    letra_mercosul = "ABCDEFGHIJ"[int(placa[4])]
+    return rf"{placa[:3]}[\s-]?{placa[3]}[{placa[4]}{letra_mercosul}]{placa[5:]}"
+
+PADRAO_PLACA_FROTA = re.compile(
+    r'(?<![A-Z0-9])' + _padrao_variantes_placa(PLACA_FROTA_PRINCIPAL) + r'(?![A-Z0-9])'
+)
+
 def extrair_placa_do_texto(texto):
+    """Primeira placa do texto; variantes da frota principal (OOM 9749, OOM-9749, OOM9H49) devolvem OOM9749."""
     if not texto:
         return None
-    match = PADRAO_PLACA.search(str(texto).upper())
-    if match:
-        return match.group(1).replace("-", "")
-    return None
+    texto = str(texto).upper()
+    achados = [m for m in (PADRAO_PLACA_FROTA.search(texto), PADRAO_PLACA.search(texto)) if m]
+    if not achados:
+        return None
+    primeiro = min(achados, key=lambda m: m.start())
+    if primeiro.re is PADRAO_PLACA_FROTA:
+        return PLACA_FROTA_PRINCIPAL
+    return primeiro.group(1).replace("-", "")
 
 def carregar_excel_com_cabecalho(caminho_arquivo):
     """Devolve (DataFrame, índice 0-based da linha de cabeçalho no Excel)."""
@@ -199,6 +213,20 @@ def placa_do_campo(placa_erp: str):
     return extrair_placa_do_texto(texto)
 
 
+def identificar_placa(placa_erp: str, texto_busca: str):
+    """(placa, origem): origem 'campo', 'historico' (natureza/histórico/obs/identificação) ou None se sem placa.
+
+    Mesmo critério na quarentena, no motor e na auditoria: sem placa = BLOQUEANTE e fora da DRE.
+    """
+    placa = placa_do_campo(placa_erp or "")
+    if placa:
+        return placa, "campo"
+    placa = extrair_placa_do_texto(texto_busca)
+    if placa:
+        return placa, "historico"
+    return None, None
+
+
 def validar_ficheiro(caminho):
     """Lista de erros do ficheiro (um dict por erro).
 
@@ -244,13 +272,15 @@ def validar_ficheiro(caminho):
             continue
 
         valor = _valor_numerico(row[col_valor]) if col_valor and col_valor in df.columns else None
-        data = (
-            _data_valida(row[col_baixa]) if col_baixa else ""
-        ) or (
-            _data_valida(row[col_vencimento]) if col_vencimento else ""
-        ) or (
-            _data_valida(row[col_negociacao]) if col_negociacao else ""
-        )
+        data_negociacao = _data_valida(row[col_negociacao]) if col_negociacao else ""
+        if valor is not None and valor > 0:
+            data = data_negociacao
+        else:
+            data = (
+                _data_valida(row[col_baixa]) if col_baixa else ""
+            ) or (
+                _data_valida(row[col_vencimento]) if col_vencimento else ""
+            ) or data_negociacao
         placa_erp = texto(row, col_placa)
 
         base = {
@@ -287,15 +317,12 @@ def validar_ficheiro(caminho):
         if 'tesou' in limpar_texto(texto_busca).lower():
             registar("Lançamento Tesou")
         else:
-            placa = placa_do_campo(placa_erp)
-            if not placa:
-                placa_texto = extrair_placa_do_texto(texto_busca)
-                if placa_texto:
-                    placa = placa_texto
-                    registar("Placa só no histórico", f"Placa no texto: {placa_texto}")
-                else:
-                    registar("Placa genérica ou ausente")
-            if placa and PLACA_FROTA_PRINCIPAL not in placa:
+            placa, origem = identificar_placa(placa_erp, texto_busca)
+            if origem == "historico":
+                registar("Placa só no histórico", f"Placa no texto: {placa}")
+            elif not placa:
+                registar("Placa genérica ou ausente")
+            if placa and placa != PLACA_FROTA_PRINCIPAL:
                 registar("Placa de outro veículo", f"Placa: {placa}")
 
         lancamentos.append(base)

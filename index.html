@@ -46,6 +46,7 @@
         header p { margin: 5px 0 0 0; font-size: 12px; color: var(--text-secondary); }
         .author-signature { font-size: 11px; color: var(--accent-purple); opacity: 0.9; margin-top: 4px; letter-spacing: 0.3px; font-weight: 600; }
         .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .view-toggle-btns { display: flex; gap: 10px; padding-right: 12px; border-right: 1px solid var(--border-color); }
         .toggle-btn, .table-toggle-btn {
             background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
             color: var(--accent-blue); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px;
@@ -54,6 +55,16 @@
         .table-toggle-btn { background: rgba(163, 230, 53, 0.15); border-color: rgba(163, 230, 53, 0.4); color: var(--accent-purple); }
         .toggle-btn.active, .toggle-btn:hover { background: var(--accent-blue); color: #0f1e17; }
         .table-toggle-btn:hover { background: var(--accent-purple); color: #0f1e17; }
+        .quarentena-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.45);
+            color: var(--accent-yellow); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;
+            text-decoration: none; transition: all 0.2s; box-sizing: border-box;
+        }
+        .quarentena-btn:hover { background: var(--accent-yellow); color: #0f1e17; }
+        .quarentena-btn[hidden] { display: none; }
+        .quarentena-btn.indisponivel { opacity: 0.55; cursor: not-allowed; border-style: dashed; }
+        .quarentena-btn.indisponivel:hover { background: rgba(251, 191, 36, 0.12); color: var(--accent-yellow); }
         
         #defaultDashboardContent { display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; }
         #defaultDashboardContent.hidden-content { display: none !important; }
@@ -138,6 +149,50 @@
             display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-secondary);
             background: rgba(10, 23, 17, 0.5); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color);
         }
+        .dre-scroll { max-height: 550px; overflow-y: auto; }
+
+        /* ===== Visão Mobile ===== */
+        body.mobile-mode { padding: 10px; }
+        body.mobile-mode .dashboard-container { max-width: 440px; gap: 14px; }
+        body.mobile-mode header { padding: 14px; flex-direction: column; align-items: stretch; }
+        body.mobile-mode header h1 { font-size: 17px; }
+        body.mobile-mode .header-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        body.mobile-mode .view-toggle-btns { display: contents; }
+        body.mobile-mode #btnAuditorToggle { grid-column: 1 / -1; padding: 11px; font-size: 13px; }
+        body.mobile-mode #btnQuarentena { grid-column: 1 / -1; padding: 11px; font-size: 13px; }
+        body.mobile-mode .grid-container { gap: 10px; }
+        body.mobile-mode .chart-container { height: 240px; }
+        body.mobile-mode footer { flex-direction: column; align-items: flex-start; padding: 14px; }
+        body.mobile-mode .footer-right { flex-wrap: wrap; }
+
+        body.mobile-mode .dre-container { padding: 12px; }
+        body.mobile-mode .dre-header-title { font-size: 14px; gap: 10px; padding-bottom: 12px; margin-bottom: 10px; }
+        body.mobile-mode .filter-container { padding: 10px; }
+        body.mobile-mode .filter-options { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+        body.mobile-mode .month-chip { flex: 0 0 auto; padding: 8px 10px; }
+        body.mobile-mode .dre-scroll { max-height: none; overflow: visible; }
+
+        body.mobile-mode table.dre-table, body.mobile-mode table.dre-table tbody { display: block; width: 100%; min-width: 0; }
+        body.mobile-mode table.dre-table thead { display: none; }
+        body.mobile-mode table.dre-table tr {
+            display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 5px;
+            align-items: center; padding: 11px 12px; border-bottom: 1px solid var(--border-color);
+        }
+        body.mobile-mode table.dre-table tr.row-sub:not(.open),
+        body.mobile-mode table.dre-table tr.row-detail:not(.open) { display: none; }
+        body.mobile-mode table.dre-table td { display: block; padding: 0 !important; border: none; min-width: 0; }
+        body.mobile-mode table.dre-table td:nth-child(1) { grid-column: 1; grid-row: 1; overflow-wrap: anywhere; }
+        body.mobile-mode table.dre-table td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: 11px; color: var(--text-secondary); }
+        body.mobile-mode table.dre-table td:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; font-size: 13px; }
+        body.mobile-mode table.dre-table td[colspan] { grid-column: 1 / -1; grid-row: 1; }
+        body.mobile-mode table.dre-table tr.row-group td:nth-child(1) { font-size: 12px; }
+        body.mobile-mode table.dre-table tr.row-sub { padding-left: 22px; }
+        body.mobile-mode table.dre-table tr.row-detail {
+            margin: 6px 0 6px 14px; padding: 10px; border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-purple); border-radius: 8px;
+        }
+        body.mobile-mode table.dre-table tr.row-detail td:nth-child(1) { grid-column: 1 / -1; line-height: 1.55; color: var(--text-primary); }
+        body.mobile-mode table.dre-table tr.row-detail td:nth-child(3) { grid-row: 2; }
     </style>
 </head>
 <body id="bodyTag">
@@ -145,24 +200,25 @@
     <header>
         <div>
             <h1>Agrovia - "Frota" - Gestão de Custo de Frota</h1>
-            <p>Atualizado em: 02/10/2026 às 17:38 | DRE Gerencial & Auditoria ERP</p>
+            <p>Atualizado em: 03/10/2026 às 01:55 | DRE Gerencial & Auditoria ERP</p>
             <div class="author-signature">Autor do Relatório: Samuel Oliveira Silva</div>
         </div>
         <div class="header-actions">
-            <button id="btnAuditorToggle" class="table-toggle-btn" onclick="toggleAuditorVersion()">📋 Ver Tabela Analítica</button>
             <div class="view-toggle-btns">
                 <button class="toggle-btn active" onclick="setViewMode('pc', this)">🖥 Visão PC</button>
                 <button class="toggle-btn" onclick="setViewMode('mobile', this)">📱 Visão Mobile</button>
             </div>
+            <button id="btnAuditorToggle" class="table-toggle-btn" onclick="toggleAuditorVersion()">📋 Ver Tabela Analítica</button>
+            <a id="btnQuarentena" class="quarentena-btn" href="saidas/relatorios_auditoria/pendencias_lancamentos.html" target="_blank" rel="noopener" data-relatorio="presente" title="Abre a tela de quarentena de lançamentos (só na máquina local)" hidden>🧪 Quarentena</a>
         </div>
     </header>
 
     <div id="defaultDashboardContent">
         <div class="grid-container">
-            <div class="card kpi-card kpi-blue"><span class="kpi-title">Receita Bruta Total</span><div class="kpi-value kpi-receita-bruta">R$ 202.222,10</div></div>
-            <div class="card kpi-card kpi-pink"><span class="kpi-title">Custo Total da Frota</span><div class="kpi-value kpi-custo-total">R$ 85.351,07</div></div>
-            <div class="card kpi-card kpi-purple"><span class="kpi-title">Resultado Líquido</span><div class="kpi-value kpi-resultado-liquido">R$ 116.871,03</div></div>
-            <div class="card kpi-card kpi-green"><span class="kpi-title">Margem Líquida</span><div class="kpi-value kpi-margem-liquida">57.79%</div></div>
+            <div class="card kpi-card kpi-blue"><span class="kpi-title">Receita Bruta Total</span><div class="kpi-value kpi-receita-bruta">R$ 295.200,30</div></div>
+            <div class="card kpi-card kpi-pink"><span class="kpi-title">Custo Total da Frota</span><div class="kpi-value kpi-custo-total">R$ 78.221,45</div></div>
+            <div class="card kpi-card kpi-purple"><span class="kpi-title">Resultado Líquido</span><div class="kpi-value kpi-resultado-liquido">R$ 216.978,85</div></div>
+            <div class="card kpi-card kpi-green"><span class="kpi-title">Margem Líquida</span><div class="kpi-value kpi-margem-liquida">73.50%</div></div>
             <div class="card kpi-card kpi-yellow"><span class="kpi-title">CPK (Custo / KM)</span><div class="kpi-value kpi-cpk">Sem dado</div></div>
             <div class="card kpi-card kpi-orange"><span class="kpi-title">Consumo Médio (Km/L)</span><div class="kpi-value kpi-consumo">Sem dado</div></div>
 
@@ -200,7 +256,7 @@
                 </div>
             </div>
 
-            <div style="max-height: 550px; overflow-y: auto;">
+            <div class="dre-scroll">
                 <table class="dre-table">
                     <thead>
                         <tr>
@@ -214,37 +270,37 @@
                             <tr class="row-group" onclick="toggleRow('sub-receita')">
                                 <td><i class="fa-solid fa-chevron-right" id="icon-sub-receita"></i> (+) RECEITA OPERACIONAL BRUTA</td>
                                 <td><span class="badge-cat">Faturamento</span></td>
-                                <td class="text-right val-receita-total" style="color: var(--accent-blue);">R$ 202.222,10</td>
+                                <td class="text-right val-receita-total" style="color: var(--accent-blue);">R$ 295.200,30</td>
                             </tr>
                             <tr class="row-sub sub-receita" onclick="toggleRow('detail-frete')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Prestação de Serviços de Transporte</td>
                                 <td><span class="badge-sub">Receita de Frete</span></td>
-                                <td class="text-right val-receita-sub">R$ 202.222,10</td>
+                                <td class="text-right val-receita-sub">R$ 295.200,30</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="10600.73">
+                            <tr class="row-detail detail-frete" data-mes="01" data-valor="10600.73">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 1391242 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>08/01/2026</strong> • N° 1391242 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 10.600,73</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="10834.58">
+                            <tr class="row-detail detail-frete" data-mes="01" data-valor="10834.58">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 1405843 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>30/01/2026</strong> • N° 1405843 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 10.834,58</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="03" data-valor="3256.63">
+                            <tr class="row-detail detail-frete" data-mes="02" data-valor="3256.63">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>09/03/2026</strong> • N° 1432296 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BELLUNO LOGISTICA - RIO VERDE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>02/02/2026</strong> • N° 1432296 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BELLUNO LOGISTICA - RIO VERDE</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 3.256,63</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="03" data-valor="7655.94">
+                            <tr class="row-detail detail-frete" data-mes="02" data-valor="7655.94">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/03/2026</strong> • N° 1407565 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BELLUNO LOGISTICA - RIO VERDE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>02/02/2026</strong> • N° 1407565 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BELLUNO LOGISTICA - RIO VERDE</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 7.655,94</td>
@@ -258,56 +314,56 @@
                             </tr>
                             <tr class="row-detail detail-frete" data-mes="02" data-valor="2045.01">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>27/02/2026</strong> • N° 1413089 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>09/02/2026</strong> • N° 1413089 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.045,01</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="9833.01">
+                            <tr class="row-detail detail-frete" data-mes="02" data-valor="9833.01">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 1412189 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>09/02/2026</strong> • N° 1412189 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 9.833,01</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="10321.39">
+                            <tr class="row-detail detail-frete" data-mes="02" data-valor="10321.39">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 1417024 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>14/02/2026</strong> • N° 1417024 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 10.321,39</td>
                             </tr>
                             <tr class="row-detail detail-frete" data-mes="02" data-valor="2307.57">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>27/02/2026</strong> • N° 1417370 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>16/02/2026</strong> • N° 1417370 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.307,57</td>
                             </tr>
                             <tr class="row-detail detail-frete" data-mes="02" data-valor="9230.28">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/02/2026</strong> • N° 1417345 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>16/02/2026</strong> • N° 1417345 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 9.230,28</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="9833.01">
+                            <tr class="row-detail detail-frete" data-mes="02" data-valor="9833.01">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 1422833 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>23/02/2026</strong> • N° 1422833 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 9.833,01</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="03" data-valor="15215.7">
+                            <tr class="row-detail detail-frete" data-mes="02" data-valor="15215.7">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/03/2026</strong> • N° 1423284 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BELLUNO LOGISTICA - RIO VERDE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>23/02/2026</strong> • N° 1423284 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>BELLUNO LOGISTICA - RIO VERDE</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 15.215,70</td>
                             </tr>
                             <tr class="row-detail detail-frete" data-mes="03" data-valor="3188.37">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>19/03/2026</strong> • N° 1428209 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - ALTO TAQUARI</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>02/03/2026</strong> • N° 1428209 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - ALTO TAQUARI</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 3.188,37</td>
@@ -321,185 +377,276 @@
                             </tr>
                             <tr class="row-detail detail-frete" data-mes="03" data-valor="11461.75">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>09/03/2026</strong> • N° 1434580 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/03/2026</strong> • N° 1434580 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 11.461,75</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="05" data-valor="2865.44">
+                            <tr class="row-detail detail-frete" data-mes="03" data-valor="2865.44">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/05/2026</strong> • N° 1434908 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/03/2026</strong> • N° 1434908 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.865,44</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="5578.85">
+                            <tr class="row-detail detail-frete" data-mes="03" data-valor="5578.85">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 1434592 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/03/2026</strong> • N° 1434592 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 5.578,85</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="2269.32">
+                            <tr class="row-detail detail-frete" data-mes="03" data-valor="2269.32">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 1434597 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/03/2026</strong> • N° 1434597 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.269,32</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="1821.61">
+                            <tr class="row-detail detail-frete" data-mes="03" data-valor="1821.61">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/04/2026</strong> • N° 1434604 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>10/03/2026</strong> • N° 1434604 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - PR</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 1.821,61</td>
                             </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="7617.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>01/07/2026</strong> • N° 1526101 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 7.617,00</td>
+                            </tr>
                             <tr class="row-detail detail-frete" data-mes="07" data-valor="5427.38">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>28/07/2026</strong> • N° 1526863 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>02/07/2026</strong> • N° 1526863 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRES DIVISAS - COSTA RICA</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 5.427,38</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="09" data-valor="12048.16">
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="12048.16">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/09/2026</strong> • N° 1536058 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>LDC TRANSPORTES - JATAI</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/07/2026</strong> • N° 1536058 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>LDC TRANSPORTES - JATAI</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 12.048,16</td>
                             </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="6189.3">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>14/07/2026</strong> • N° 1536677 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 6.189,30</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="480.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/07/2026</strong> • N° 1541749 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 480,00</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="1046.72">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/08/2026</strong> • N° 1552139 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 1.046,72</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="480.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/07/2026</strong> • N° 1541751 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 480,00</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="2252.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/07/2026</strong> • N° 1541754 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.252,00</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="1000.0">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>20/07/2026</strong> • N° 1541758 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 1.000,00</td>
+                            </tr>
                             <tr class="row-detail detail-frete" data-mes="07" data-valor="12478.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>23/07/2026</strong> • N° 1544988 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>JATOBA TRANSPORTES - ALTO TAQUARI</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/07/2026</strong> • N° 1544988 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>JATOBA TRANSPORTES - ALTO TAQUARI</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 12.478,00</td>
                             </tr>
                             <tr class="row-detail detail-frete" data-mes="07" data-valor="8544.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/07/2026</strong> • N° 1546229 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>LONTANO - CAMPO GRANDE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>27/07/2026</strong> • N° 1546229 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>LONTANO - CAMPO GRANDE</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 8.544,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="08" data-valor="3775.59">
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="2849.18">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>14/08/2026</strong> • N° 1555066 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>G10 - DOURADOS</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>27/07/2026</strong> • N° 1551994 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>LONTANO - CAMPO GRANDE</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.849,18</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="3533.36">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/07/2026</strong> • N° 1550617 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 3.533,36</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="3521.76">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/07/2026</strong> • N° 1550619 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 3.521,76</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="3515.96">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/07/2026</strong> • N° 1550625 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 3.515,96</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="3775.59">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/07/2026</strong> • N° 1555066 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>G10 - DOURADOS</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 3.775,59</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="08" data-valor="9045.6">
+                            <tr class="row-detail detail-frete" data-mes="07" data-valor="9045.6">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>04/08/2026</strong> • N° 1550691 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>G10 - DOURADOS</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>31/07/2026</strong> • N° 1550691 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>G10 - DOURADOS</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 9.045,60</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="05" data-valor="1000.0">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="2394.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/05/2026</strong> • N° 1452375 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>06/08/2026</strong> • N° 1556219 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 1.000,00</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.394,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="07" data-valor="163.69">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="700.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>07/07/2026</strong> • N° 1531555 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>06/08/2026</strong> • N° 1556234 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 163,69</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 700,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="01" data-valor="890.0">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="2293.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>28/01/2026</strong> • N° 1403642 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/08/2026</strong> • N° 1560164 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 890,00</td>
-                            </tr>
-                            <tr class="row-detail detail-frete" data-mes="05" data-valor="900.0">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/05/2026</strong> • N° 1469429 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
-                                </td>
-                                <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 900,00</td>
-                            </tr>
-                            <tr class="row-detail detail-frete" data-mes="03" data-valor="288.0">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/03/2026</strong> • N° 1431984 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
-                                </td>
-                                <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 288,00</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.293,00</td>
                             </tr>
                             <tr class="row-detail detail-frete" data-mes="08" data-valor="500.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/08/2026</strong> • N° 1543774 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/08/2026</strong> • N° 1560167 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
                                 <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 500,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="31.5">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="2371.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>22/04/2026</strong> • N° 1469438 • Placa: <strong>NÃO INFORMADA</strong> • <strong>TRUCKS COM E TEC DE RASTREAD COM LTDA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/08/2026</strong> • N° 1560172 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 31,50</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.371,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="06" data-valor="1690.6">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="750.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>22/06/2026</strong> • N° 1520025 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/08/2026</strong> • N° 1560173 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 1.690,60</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 750,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="04" data-valor="31.5">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="2377.5">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>22/04/2026</strong> • N° 1469437 • Placa: <strong>NÃO INFORMADA</strong> • <strong>TRUCKS COM E TEC DE RASTREAD COM LTDA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/08/2026</strong> • N° 1560268 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 31,50</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.377,50</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="08" data-valor="300.0">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="700.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/08/2026</strong> • N° 1548820 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/08/2026</strong> • N° 1560271 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 300,00</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 700,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="07" data-valor="1500.0">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="7343.9">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>07/07/2026</strong> • N° 1510793 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/08/2026</strong> • N° 1561121 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 1.500,00</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 7.343,90</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="03" data-valor="480.0">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="7285.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>05/03/2026</strong> • N° 1420039 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>17/08/2026</strong> • N° 1563053 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 480,00</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 7.285,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="07" data-valor="2675.38">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="2324.58">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>30/07/2026</strong> • N° 1531191 • Placa: <strong>NÃO INFORMADA</strong> • <strong>CAMPOVITA COMERCIO - CHAP SUL</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>26/08/2026</strong> • N° 1572050 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.675,38</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.324,58</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="05" data-valor="300.0">
+                            <tr class="row-detail detail-frete" data-mes="08" data-valor="765.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>11/05/2026</strong> • N° 1485556 • Placa: <strong>NÃO INFORMADA</strong> • <strong>AUTO POSTO ECOLOGICO</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>26/08/2026</strong> • N° 1572064 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 300,00</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 765,00</td>
                             </tr>
-                            <tr class="row-detail detail-frete" data-mes="06" data-valor="900.0">
+                            <tr class="row-detail detail-frete" data-mes="09" data-valor="9600.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>02/06/2026</strong> • N° 1490889 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>14/09/2026</strong> • N° 1585312 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRANSVALE - ITUMBIARA</strong>
                                 </td>
                                 <td><span class="badge-sub">Frete / Operação</span></td>
-                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 900,00</td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 9.600,00</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="09" data-valor="2430.76">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>14/09/2026</strong> • N° 1590204 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRANSVALE - ITUMBIARA</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 2.430,76</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="09" data-valor="6478.65">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>14/09/2026</strong> • N° 1585526 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>CAMPOVITA TRANSPORTES - SP</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 6.478,65</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="09" data-valor="11847.7">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>25/09/2026</strong> • N° 1594178 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRANSVALE - ITUMBIARA</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 11.847,70</td>
+                            </tr>
+                            <tr class="row-detail detail-frete" data-mes="09" data-valor="11982.5">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>28/09/2026</strong> • N° 1601701 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>TRANSVALE - ITUMBIARA</strong>
+                                </td>
+                                <td><span class="badge-sub">Frete / Operação</span></td>
+                                <td class="text-right" style="color: var(--text-primary); font-weight: 600;">R$ 11.982,50</td>
                             </tr>
                             <!-- BLOCO 2: DEDUÇÕES -->
                             <tr class="row-group" onclick="toggleRow('sub-deducoes')">
@@ -517,14 +664,14 @@
                             <tr class="row-total">
                                 <td>(=) RECEITA OPERACIONAL LÍQUIDA</td>
                                 <td>Receita Efetiva</td>
-                                <td class="text-right val-rec-liquida">R$ 202.222,10</td>
+                                <td class="text-right val-rec-liquida">R$ 295.200,30</td>
                             </tr>
 
                             <!-- BLOCO 4: CUSTOS OPERACIONAIS -->
                             <tr class="row-group" onclick="toggleRow('sub-custos')">
                                 <td><i class="fa-solid fa-chevron-right"></i> (-) CUSTOS OPERACIONAIS DA FROTA</td>
                                 <td><span class="badge-cat">Custos Diretos</span></td>
-                                <td class="text-right val-custos-total" style="color: #f87171;">-R$ 85.351,07</td>
+                                <td class="text-right val-custos-total" style="color: #f87171;">-R$ 78.221,45</td>
                             </tr>
                             <tr class="row-sub sub-custos" onclick="toggleRow('detail-diesel')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Combustível (Diesel)</td>
@@ -566,28 +713,28 @@
                             </tr>
                             <tr class="row-detail detail-manut" data-mes="02" data-valor="1440.8">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° 1410515 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° 1410515 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
                                 </td>
                                 <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.440,80</td>
                             </tr>
                             <tr class="row-detail detail-manut" data-mes="02" data-valor="224.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° 1410538 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° 1410538 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
                                 </td>
                                 <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 224,00</td>
                             </tr>
                             <tr class="row-detail detail-manut" data-mes="01" data-valor="160.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>19/01/2026</strong> • N° 1398502 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>AUTO PECAS SA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>19/01/2026</strong> • N° 1398502 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>AUTO PECAS SA</strong>
                                 </td>
                                 <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 160,00</td>
                             </tr>
                             <tr class="row-detail detail-manut" data-mes="01" data-valor="5193.64">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/01/2026</strong> • N° 1396255 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>PACAEMBU AUTOPECAS CAMPO GRANDE</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/01/2026</strong> • N° 1396255 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>PACAEMBU AUTOPECAS CAMPO GRANDE</strong>
                                 </td>
                                 <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 5.193,64</td>
@@ -608,28 +755,28 @@
                             </tr>
                             <tr class="row-detail detail-manut" data-mes="02" data-valor="80.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412323 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412323 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
                                 </td>
                                 <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 80,00</td>
                             </tr>
                             <tr class="row-detail detail-manut" data-mes="02" data-valor="320.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412331 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412331 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
                                 </td>
                                 <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 320,00</td>
                             </tr>
                             <tr class="row-detail detail-manut" data-mes="02" data-valor="1200.0">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412339 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412339 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
                                 </td>
                                 <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 1.200,00</td>
                             </tr>
                             <tr class="row-detail detail-manut" data-mes="02" data-valor="178.5">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412345 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>24/02/2026</strong> • N° 1412345 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>GAUCHA AUTO PECAS E DISTRIBUIDORA</strong>
                                 </td>
                                 <td><span class="badge-sub">MANUTENÇÃO DE AUTOMÓVEIS PESADO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 178,50</td>
@@ -641,7 +788,7 @@
                             </tr>
                             <tr class="row-detail detail-pedagio" data-mes="01" data-valor="2694.36">
                                 <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/01/2026</strong> • N° 1395187 • Placa: <strong>OOM9749 (Validada)</strong> • <strong>SEM PARAR</strong>
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>12/01/2026</strong> • N° 1395187 • Placa: <strong>OOM9749 (via histórico)</strong> • <strong>SEM PARAR</strong>
                                 </td>
                                 <td><span class="badge-sub">PEDAGIO</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 2.694,36</td>
@@ -771,35 +918,7 @@
                             <tr class="row-sub sub-custos" onclick="toggleRow('detail-outros')">
                                 <td style="padding-left: 30px;"><i class="fa-solid fa-caret-right"></i> • Outros Custos</td>
                                 <td><span class="badge-sub">Outros</span></td>
-                                <td class="text-right val-sub-outros">R$ 7.228,52</td>
-                            </tr>
-                            <tr class="row-detail detail-outros" data-mes="01" data-valor="890.0">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>23/01/2026</strong> • N° 1403641 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
-                                </td>
-                                <td><span class="badge-sub">ADIANTAMENTO SALARIAL -CUSTO</span></td>
-                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 890,00</td>
-                            </tr>
-                            <tr class="row-detail detail-outros" data-mes="02" data-valor="284.5">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/02/2026</strong> • N° 1417434 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
-                                </td>
-                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
-                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
-                            </tr>
-                            <tr class="row-detail detail-outros" data-mes="07" data-valor="284.5">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/07/2026</strong> • N° 1417440 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
-                                </td>
-                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
-                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
-                            </tr>
-                            <tr class="row-detail detail-outros" data-mes="04" data-valor="284.5">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/04/2026</strong> • N° 1417437 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
-                                </td>
-                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
-                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
+                                <td class="text-right val-sub-outros">R$ 98,90</td>
                             </tr>
                             <tr class="row-detail detail-outros" data-mes="10" data-valor="98.9">
                                 <td style="padding-left: 50px;">
@@ -808,39 +927,199 @@
                                 <td><span class="badge-sub">SERVICO MONITORAMENTO DE VEICULOS</span></td>
                                 <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 98,90</td>
                             </tr>
-                            <tr class="row-detail detail-outros" data-mes="03" data-valor="284.5">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/03/2026</strong> • N° 1417435 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
-                                </td>
-                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
-                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
-                            </tr>
-                            <tr class="row-detail detail-outros" data-mes="06" data-valor="284.5">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/06/2026</strong> • N° 1417439 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
-                                </td>
-                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
-                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
-                            </tr>
-                            <tr class="row-detail detail-outros" data-mes="02" data-valor="4532.62">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>04/02/2026</strong> • N° 1410618 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong>
-                                </td>
-                                <td><span class="badge-sub">SALARIOS -CUSTO</span></td>
-                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 4.532,62</td>
-                            </tr>
-                            <tr class="row-detail detail-outros" data-mes="05" data-valor="284.5">
-                                <td style="padding-left: 50px;">
-                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/05/2026</strong> • N° 1417438 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong>
-                                </td>
-                                <td><span class="badge-sub">AQUISIÇÃO MOVEIS/ UTENSILIOS E ELETRONIC</span></td>
-                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ 284,50</td>
-                            </tr>
                             <!-- BLOCO 5: RESULTADO -->
                             <tr class="row-total">
                                 <td>(=) RESULTADO / LUCRO LÍQUIDO DO EXERCÍCIO</td>
                                 <td>Resultado Final DRE</td>
-                                <td class="text-right val-resultado-liquido" style="color: var(--accent-purple);;">R$ 116.871,03</td>
+                                <td class="text-right val-resultado-liquido" style="color: var(--accent-purple);;">R$ 216.978,85</td>
+                            </tr>
+                            <!-- FORA DA DRE: SEM PLACA -->
+                            <tr class="row-group" onclick="toggleRow('detail-sem-placa')">
+                                <td><i class="fa-solid fa-chevron-right"></i> (!) LANÇAMENTOS SEM PLACA - FORA DA DRE</td>
+                                <td><span class="badge-cat">Corrigir no Sankhya</span></td>
+                                <td class="text-right" style="color: var(--accent-yellow);">26 lançamentos</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="09">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>17/09/2026</strong> • N° 1602051 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 1.000,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="03">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>30/03/2026</strong> • N° 1452375 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 1.000,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="06">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>01/06/2026</strong> • N° 1531555 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ABAT. DESP. - SALARIO JUNHO/2026
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 163,69</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="01">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>23/01/2026</strong> • N° 1403642 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • DEVOLUÇÃO DE ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 890,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="04">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>22/04/2026</strong> • N° 1469429 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 900,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="02">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>01/02/2026</strong> • N° 1431984 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • CRED. VALOR CORRIGIDO REF. FOLHA 01/2026 - SALARIO FEVEREIRO
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 288,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="07">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>21/07/2026</strong> • N° 1543774 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 500,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="02">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>03/02/2026</strong> • N° 1469438 • Placa: <strong>NÃO INFORMADA</strong> • <strong>TRUCKS COM E TEC DE RASTREAD COM LTDA</strong> • ABAT. DESP. - NF EMITIDA INCORRETAMENTE - TIRAR DO BALANCETE
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 31,50</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="06">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>16/06/2026</strong> • N° 1520025 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • DEVOLUÇÃO DE ADIANTAMENTO DE VIAGEM - PEDRO HENRIQUE MORALI 
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 1.690,60</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="02">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>02/02/2026</strong> • N° 1469437 • Placa: <strong>NÃO INFORMADA</strong> • <strong>TRUCKS COM E TEC DE RASTREAD COM LTDA</strong> • ABAT. DESP. - NF EMITIDA INCORRETAMENTE - TIRAR DO BALANCETE
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 31,50</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="08">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>17/08/2026</strong> • N° 1565776 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 1.000,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="07">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>28/07/2026</strong> • N° 1548820 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 300,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="06">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>08/06/2026</strong> • N° 1510793 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 1.500,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="02">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>18/02/2026</strong> • N° 1420039 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • VALE/ADTO SALARIAL - CAMINHÃO QUEBROU NA ESTRADA E ESTAVA SE
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 480,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="07">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>07/07/2026</strong> • N° 1533871 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 2.000,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="06">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>01/06/2026</strong> • N° 1531191 • Placa: <strong>NÃO INFORMADA</strong> • <strong>CAMPOVITA COMERCIO - CHAP SUL</strong> • VIAGENS FEITA POR PEDRINHO NO CAMINHÃO DA CVC REF. JUNHO/202
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 2.675,38</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="03">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>28/03/2026</strong> • N° 1485556 • Placa: <strong>NÃO INFORMADA</strong> • <strong>AUTO POSTO ECOLOGICO</strong> • ABAT. DESP. - ABASTECIMENTO CAMIONETE PARTICULAR PAULINHO
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 300,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="05">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/05/2026</strong> • N° 1490889 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • VALE/ADTO SALARIAL - AELIETE SOLICITOU
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: var(--accent-blue); font-weight: 600;">R$ 900,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="01">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>23/01/2026</strong> • N° 1403641 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • ADIANTAMENTO DE SALARIO - PEDRO HENRIQUE MORALI ( comissão v
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ -890,00</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="02">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/02/2026</strong> • N° 1417434 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong> • PARC. 01/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ -284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="07">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/07/2026</strong> • N° 1417440 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong> • PARC. 06/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ -284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="04">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/04/2026</strong> • N° 1417437 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong> • PARC. 03/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ -284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="03">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/03/2026</strong> • N° 1417435 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong> • PARC. 02/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ -284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="06">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>15/06/2026</strong> • N° 1417439 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong> • PARC. 05/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ -284,50</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="02">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>04/02/2026</strong> • N° 1410618 • Placa: <strong>NÃO INFORMADA</strong> • <strong>PEDRO HENRIQUE MORALI DE ALBUQUERQUE</strong> • SALARIO JANEIRO/2026
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ -4.532,62</td>
+                            </tr>
+                            <tr class="row-detail detail-sem-placa" data-mes="05">
+                                <td style="padding-left: 50px;">
+                                    <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>13/05/2026</strong> • N° 1417438 • Placa: <strong>NÃO INFORMADA</strong> • <strong>REP STORE LTDA</strong> • PARC. 04/06 - COMPRA DE 2 MONITORES P/ SAMUEL E 1 MONITOR P/
+                                </td>
+                                <td><span class="badge-sub">Sem placa</span></td>
+                                <td class="text-right" style="color: #f87171; font-weight: 600;">R$ -284,50</td>
                             </tr>
                     </tbody>
                 </table>
@@ -857,7 +1136,7 @@
             <i class="fa-solid fa-code-branch" style="color: var(--accent-blue);"></i> 
             <span>Agrovia DRE Master v8.36-RobustAuditEngine</span> 
             <span style="color: var(--border-color);">•</span> 
-            <span>Atualizado em: 02/10/2026 às 17:38</span>
+            <span>Atualizado em: 03/10/2026 às 01:55</span>
         </div>
     </footer>
 </div>
@@ -869,6 +1148,25 @@
         const body = document.getElementById('bodyTag');
         if (mode === 'mobile') { body.classList.add('mobile-mode'); } else { body.classList.remove('mobile-mode'); }
     }
+
+    if (window.matchMedia('(max-width: 768px)').matches) {
+        setViewMode('mobile', document.querySelectorAll('.view-toggle-btns .toggle-btn')[1]);
+    }
+
+    // A tela de quarentena tem dados financeiros e não é publicada: o botão só existe fora do GitHub.
+    (function prepararBotaoQuarentena() {
+        const btn = document.getElementById('btnQuarentena');
+        const local = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+        if (!btn || !local) return;
+        btn.hidden = false;
+        if (btn.dataset.relatorio !== 'presente') {
+            btn.classList.add('indisponivel');
+            btn.removeAttribute('href');
+            btn.setAttribute('aria-disabled', 'true');
+            btn.title = 'Relatório de quarentena ainda não gerado: correr validar_entrada.bat';
+            btn.innerHTML = '⚠️ Quarentena: sem relatório';
+        }
+    })();
 
     function toggleAuditorVersion() {
         const defaultContent = document.getElementById('defaultDashboardContent');
@@ -886,7 +1184,16 @@
     }
 
     function toggleRow(className) {
-        document.querySelectorAll('.' + className).forEach(el => el.classList.toggle('open'));
+        document.querySelectorAll('.' + className).forEach(el => {
+            const aberto = el.classList.toggle('open');
+            if (!aberto && el.classList.contains('row-sub')) {
+                let filho = el.nextElementSibling;
+                while (filho && filho.classList.contains('row-detail')) {
+                    filho.classList.remove('open');
+                    filho = filho.nextElementSibling;
+                }
+            }
+        });
     }
 
     function selecionarTodosMeses(status) {
@@ -916,7 +1223,6 @@
                     somaCategoria += valor;
                 } else {
                     linha.style.display = 'none';
-                    linha.classList.remove('open');
                 }
             });
             if (catClass === 'detail-frete') {
@@ -958,11 +1264,11 @@
             labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago'],
             datasets: [
                 {
-                    label: 'Receita Bruta', data: [890.0, 21762.91, 54299.85, 61155.5, 5065.4400000000005, 2590.6, 30788.45, 13621.19],
+                    label: 'Receita Bruta', data: [21435.309999999998, 77878.59, 39938.799999999996, 0.0, 0.0, 0.0, 82757.29000000001, 30850.700000000004],
                     backgroundColor: 'rgba(56, 189, 248, 0.7)', borderColor: '#38bdf8', borderWidth: 1, borderRadius: 4
                 },
                 {
-                    label: 'Custo Total Frota', data: [21346.47, 20813.329999999998, 7125.42, 6016.7, 6016.7, 4957.41, 4957.41, 4672.91],
+                    label: 'Custo Total Frota', data: [20456.47, 15996.21, 6840.92, 5732.2, 5732.2, 4672.91, 4672.91, 4672.91],
                     backgroundColor: 'rgba(46, 204, 113, 0.7)', borderColor: '#2ecc71', borderWidth: 1, borderRadius: 4
                 }
             ]
@@ -983,9 +1289,9 @@
         type: 'doughnut',
         plugins: [ChartDataLabels],
         data: {
-            labels: ["Seguros", "Combustível (Diesel)", "IPVA / Lic. / Multas", "Manutenção", "Outros Custos", "Pedágio"],
+            labels: ["Seguros", "Combustível (Diesel)", "IPVA / Lic. / Multas", "Manutenção", "Pedágio", "Outros Custos"],
             datasets: [{
-                data: [42056.19, 11983.08, 11542.079999999998, 9846.84, 7228.52, 2694.36],
+                data: [42056.19, 11983.08, 11542.079999999998, 9846.84, 2694.36, 98.9],
                 backgroundColor: ['#34D399', '#FB923C', '#FBBF24', '#38BDF8', '#A3E635', '#F43F5E'],
                 borderWidth: 0
             }]

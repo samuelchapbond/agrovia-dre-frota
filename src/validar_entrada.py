@@ -240,7 +240,7 @@ def gerar_html(erros: list, resumo_ficheiros: list, gerado_em: str, sem_promover
     .count {{ font-size: 12px; color: var(--text-secondary); }}
     .table-wrap {{ max-height: 620px; overflow: auto; }}
     .acao {{ color: var(--text-secondary); font-size: 11px; }}
-    #tabelaPendencias .check, body.mobile-mode #tabelaPendencias td.check {{ display: none; }}
+    #tabelaPendencias .check, #tabelaPendencias .c-hist, body.mobile-mode #tabelaPendencias td.check {{ display: none; }}
     .empty {{ text-align: center; color: var(--text-secondary); padding: 20px; }}
     footer {{ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; font-size: 12px; color: var(--text-secondary); }}
     .footer-left {{ display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; }}
@@ -252,19 +252,74 @@ def gerar_html(erros: list, resumo_ficheiros: list, gerado_em: str, sem_promover
         .kpis {{ grid-template-columns: repeat(2, 1fr); }}
         .grid2 {{ grid-template-columns: 1fr; }}
     }}
-    body.mobile-mode .container {{ max-width: 430px; }}
-    body.mobile-mode .kpis {{ grid-template-columns: repeat(2, 1fr); }}
-    body.mobile-mode .grid2 {{ grid-template-columns: 1fr; }}
-    @media (max-width: 760px) {{
-        #tabelaPendencias thead {{ display: none; }}
-        #tabelaPendencias tr {{ display: block; border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 10px; padding: 6px; }}
-        #tabelaPendencias td {{ display: flex; justify-content: space-between; gap: 10px; border: none; padding: 4px 6px; text-align: right; }}
-        #tabelaPendencias td::before {{ content: attr(data-label); color: var(--text-secondary); font-size: 11px; text-align: left; font-weight: 600; }}
+
+    /* ===== Visão Mobile ===== */
+    body.mobile-mode {{ padding: 10px; }}
+    body.mobile-mode .container {{ max-width: 440px; gap: 14px; }}
+    body.mobile-mode header {{ flex-direction: column; align-items: stretch; padding: 14px; }}
+    body.mobile-mode header h1 {{ font-size: 17px; }}
+    body.mobile-mode .actions {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
+    body.mobile-mode .actions .btn {{ padding: 10px; }}
+    body.mobile-mode .btn-print {{ grid-column: 1 / -1; }}
+    body.mobile-mode .kpis {{ grid-template-columns: repeat(2, 1fr); gap: 10px; }}
+    body.mobile-mode .kpi:last-child {{ grid-column: 1 / -1; }}
+    body.mobile-mode .kpi-value {{ font-size: 19px; }}
+    body.mobile-mode .grid2 {{ grid-template-columns: 1fr; gap: 14px; }}
+    body.mobile-mode .table-wrap {{ max-height: none; overflow: visible; }}
+    body.mobile-mode tr:hover td {{ background: transparent; }}
+    body.mobile-mode footer {{ flex-direction: column; align-items: flex-start; }}
+
+    body.mobile-mode .filters {{
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        position: sticky; top: 0; z-index: 2; background: var(--card-bg); padding: 8px 0; margin-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
     }}
-    body.mobile-mode #tabelaPendencias thead {{ display: none; }}
-    body.mobile-mode #tabelaPendencias tr {{ display: block; border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 10px; padding: 6px; }}
-    body.mobile-mode #tabelaPendencias td {{ display: flex; justify-content: space-between; gap: 10px; border: none; padding: 4px 6px; text-align: right; }}
-    body.mobile-mode #tabelaPendencias td::before {{ content: attr(data-label); color: var(--text-secondary); font-size: 11px; text-align: left; font-weight: 600; }}
+    body.mobile-mode .filters select, body.mobile-mode .filters input {{ width: 100%; min-width: 0; box-sizing: border-box; padding: 9px 8px; font-size: 13px; }}
+    body.mobile-mode .filters input {{ font-size: 16px; }}
+    body.mobile-mode #fFicheiro, body.mobile-mode #fBusca, body.mobile-mode .count {{ grid-column: 1 / -1; }}
+    body.mobile-mode .count {{ text-align: right; }}
+
+    body.mobile-mode #tabelaFicheiros, body.mobile-mode #tabelaFicheiros tbody,
+    body.mobile-mode #tabelaPendencias, body.mobile-mode #tabelaPendencias tbody {{ display: block; width: 100%; }}
+    body.mobile-mode #tabelaFicheiros thead, body.mobile-mode #tabelaPendencias thead {{ display: none; }}
+    body.mobile-mode #tabelaFicheiros td, body.mobile-mode #tabelaPendencias td {{ display: block; border: none; padding: 0; min-width: 0; text-align: left; overflow-wrap: anywhere; }}
+    body.mobile-mode #tabelaFicheiros td::before, body.mobile-mode #tabelaPendencias td::before {{
+        content: attr(data-label); display: block; margin-bottom: 2px; color: var(--text-secondary);
+        font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+    }}
+    body.mobile-mode #tabelaFicheiros td.empty, body.mobile-mode #tabelaPendencias td.empty {{ grid-column: 1 / -1; text-align: center; }}
+
+    body.mobile-mode #tabelaFicheiros tr {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }}
+    body.mobile-mode #tabelaFicheiros td:nth-child(1), body.mobile-mode #tabelaFicheiros td:nth-child(4) {{ grid-column: 1 / -1; }}
+    body.mobile-mode #tabelaFicheiros td:nth-child(1) {{ font-size: 13px; font-weight: 700; }}
+    body.mobile-mode #tabelaFicheiros .badge {{ display: block; white-space: normal; line-height: 1.4; padding: 6px 8px; }}
+
+    body.mobile-mode #tabelaPendencias tr {{
+        display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px;
+        grid-template-areas: "sev valor" "regra regra" "parc parc" "hist hist" "nr data" "fic op" "placa placa" "acao acao" "status status";
+        background: rgba(10,23,17,0.45); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-yellow);
+        border-radius: 10px; margin-bottom: 10px; padding: 12px;
+    }}
+    body.mobile-mode #tabelaPendencias tr.sev-BLOQUEANTE {{ border-left-color: var(--accent-red); }}
+    body.mobile-mode #tabelaPendencias td.c-sev::before, body.mobile-mode #tabelaPendencias td.c-regra::before,
+    body.mobile-mode #tabelaPendencias td.c-parc::before, body.mobile-mode #tabelaPendencias td.c-hist::before {{ content: none; }}
+    body.mobile-mode #tabelaPendencias td.c-sev {{ grid-area: sev; align-self: center; }}
+    body.mobile-mode #tabelaPendencias td.c-valor {{ grid-area: valor; text-align: right; font-size: 15px; font-weight: 700; }}
+    body.mobile-mode #tabelaPendencias td.c-regra {{ grid-area: regra; font-size: 14px; font-weight: 700; }}
+    body.mobile-mode #tabelaPendencias td.c-parc {{ grid-area: parc; font-size: 12px; }}
+    body.mobile-mode #tabelaPendencias td.c-hist {{ grid-area: hist; display: block; font-size: 11px; font-style: italic; color: var(--text-secondary); }}
+    body.mobile-mode #tabelaPendencias td.c-hist:empty {{ display: none; }}
+    body.mobile-mode #tabelaPendencias td.c-nr {{ grid-area: nr; }}
+    body.mobile-mode #tabelaPendencias td.c-data {{ grid-area: data; }}
+    body.mobile-mode #tabelaPendencias td.c-fic {{ grid-area: fic; }}
+    body.mobile-mode #tabelaPendencias td.c-op {{ grid-area: op; }}
+    body.mobile-mode #tabelaPendencias td.c-placa {{ grid-area: placa; }}
+    body.mobile-mode #tabelaPendencias tr td.c-acao {{
+        grid-area: acao; padding: 8px 10px; border-left: 2px solid var(--accent-blue); border-radius: 6px;
+        background: rgba(56,189,248,0.08); color: var(--text-primary); font-size: 12px; line-height: 1.45;
+    }}
+    body.mobile-mode #tabelaPendencias td.c-status {{ grid-area: status; text-align: right; font-size: 11px; color: var(--text-secondary); }}
+    body.mobile-mode #tabelaPendencias td.c-status::before {{ content: attr(data-label) ": "; display: inline; font-size: 11px; text-transform: none; letter-spacing: 0; }}
 
     @media print {{
         body {{ background: #fff; color: #000; padding: 0; font-size: 10px; }}
@@ -387,8 +442,8 @@ function renderResumos() {{
     const tbF = document.querySelector('#tabelaFicheiros tbody');
     FICHEIROS.forEach(f => {{
         const tr = document.createElement('tr');
-        celula(tr, f.ficheiro); celula(tr, f.bloqueantes, null, 'num'); celula(tr, f.avisos, null, 'num');
-        const td = celula(tr, '');
+        celula(tr, f.ficheiro, 'Ficheiro'); celula(tr, f.bloqueantes, 'Bloqueantes', 'num'); celula(tr, f.avisos, 'Avisos', 'num');
+        const td = celula(tr, '', 'Decisão');
         const s = document.createElement('span');
         s.className = 'badge ' + (f.decisao.startsWith('PROMOVIDO') || f.decisao.startsWith('APTO') ? 'badge-ok' : 'badge-BLOQUEANTE');
         s.textContent = f.decisao;
@@ -436,18 +491,20 @@ function renderPendencias() {{
     );
     filtrados.forEach(e => {{
         const tr = document.createElement('tr');
+        tr.className = 'sev-' + e.severidade;
         celula(tr, '[  ]', 'OK', 'check');
-        badge(celula(tr, '', 'Severidade'), e.severidade);
-        celula(tr, e.regra, 'Regra');
-        celula(tr, e.nr_unico, 'Nro Único');
-        celula(tr, e.ficheiro + ' : ' + e.linha, 'Ficheiro : linha');
-        celula(tr, e.data, 'Data', 'nowrap');
-        celula(tr, e.parceiro, 'Parceiro');
-        celula(tr, e.operador, 'Operador');
-        celula(tr, moeda(e.valor), 'Valor (R$)', 'num');
-        celula(tr, e.placa_erp + (e.detalhe ? ' | ' + e.detalhe : ''), 'Placa / Detalhe');
-        celula(tr, e.acao, 'Ação esperada', 'acao');
-        celula(tr, e.status || 'Pendente', 'Status');
+        badge(celula(tr, '', 'Severidade', 'c-sev'), e.severidade);
+        celula(tr, e.regra, 'Regra', 'c-regra');
+        celula(tr, e.nr_unico, 'Nro Único', 'c-nr');
+        celula(tr, e.ficheiro + ' : ' + e.linha, 'Ficheiro : linha', 'c-fic');
+        celula(tr, e.data, 'Data', 'c-data nowrap');
+        celula(tr, e.parceiro, 'Parceiro', 'c-parc');
+        celula(tr, e.operador, 'Operador', 'c-op');
+        celula(tr, moeda(e.valor), 'Valor (R$)', 'c-valor num');
+        celula(tr, e.placa_erp + (e.detalhe ? ' | ' + e.detalhe : ''), 'Placa / Detalhe', 'c-placa');
+        celula(tr, e.acao, 'Ação esperada', 'c-acao acao');
+        celula(tr, e.status || 'Pendente', 'Status', 'c-status');
+        celula(tr, e.historico || '', 'Histórico', 'c-hist');
         tr.title = e.historico || '';
         tb.appendChild(tr);
     }});
@@ -464,6 +521,9 @@ preencherOpcoes('fFicheiro', ERROS.map(e => e.ficheiro));
 }});
 renderResumos();
 renderPendencias();
+if (window.matchMedia('(max-width: 768px)').matches) {{
+    setViewMode('mobile', document.querySelectorAll('.actions .btn')[1]);
+}}
 </script>
 </body>
 </html>

@@ -46,6 +46,7 @@
         header p { margin: 5px 0 0 0; font-size: 12px; color: var(--text-secondary); }
         .author-signature { font-size: 11px; color: var(--accent-purple); opacity: 0.9; margin-top: 4px; letter-spacing: 0.3px; font-weight: 600; }
         .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .view-toggle-btns { display: flex; gap: 10px; padding-right: 12px; border-right: 1px solid var(--border-color); }
         .toggle-btn, .table-toggle-btn {
             background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
             color: var(--accent-blue); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px;
@@ -54,6 +55,16 @@
         .table-toggle-btn { background: rgba(163, 230, 53, 0.15); border-color: rgba(163, 230, 53, 0.4); color: var(--accent-purple); }
         .toggle-btn.active, .toggle-btn:hover { background: var(--accent-blue); color: #0f1e17; }
         .table-toggle-btn:hover { background: var(--accent-purple); color: #0f1e17; }
+        .quarentena-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.45);
+            color: var(--accent-yellow); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;
+            text-decoration: none; transition: all 0.2s; box-sizing: border-box;
+        }
+        .quarentena-btn:hover { background: var(--accent-yellow); color: #0f1e17; }
+        .quarentena-btn[hidden] { display: none; }
+        .quarentena-btn.indisponivel { opacity: 0.55; cursor: not-allowed; border-style: dashed; }
+        .quarentena-btn.indisponivel:hover { background: rgba(251, 191, 36, 0.12); color: var(--accent-yellow); }
         
         #defaultDashboardContent { display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; }
         #defaultDashboardContent.hidden-content { display: none !important; }
@@ -138,6 +149,50 @@
             display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-secondary);
             background: rgba(10, 23, 17, 0.5); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color);
         }
+        .dre-scroll { max-height: 550px; overflow-y: auto; }
+
+        /* ===== Visão Mobile ===== */
+        body.mobile-mode { padding: 10px; }
+        body.mobile-mode .dashboard-container { max-width: 440px; gap: 14px; }
+        body.mobile-mode header { padding: 14px; flex-direction: column; align-items: stretch; }
+        body.mobile-mode header h1 { font-size: 17px; }
+        body.mobile-mode .header-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        body.mobile-mode .view-toggle-btns { display: contents; }
+        body.mobile-mode #btnAuditorToggle { grid-column: 1 / -1; padding: 11px; font-size: 13px; }
+        body.mobile-mode #btnQuarentena { grid-column: 1 / -1; padding: 11px; font-size: 13px; }
+        body.mobile-mode .grid-container { gap: 10px; }
+        body.mobile-mode .chart-container { height: 240px; }
+        body.mobile-mode footer { flex-direction: column; align-items: flex-start; padding: 14px; }
+        body.mobile-mode .footer-right { flex-wrap: wrap; }
+
+        body.mobile-mode .dre-container { padding: 12px; }
+        body.mobile-mode .dre-header-title { font-size: 14px; gap: 10px; padding-bottom: 12px; margin-bottom: 10px; }
+        body.mobile-mode .filter-container { padding: 10px; }
+        body.mobile-mode .filter-options { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+        body.mobile-mode .month-chip { flex: 0 0 auto; padding: 8px 10px; }
+        body.mobile-mode .dre-scroll { max-height: none; overflow: visible; }
+
+        body.mobile-mode table.dre-table, body.mobile-mode table.dre-table tbody { display: block; width: 100%; min-width: 0; }
+        body.mobile-mode table.dre-table thead { display: none; }
+        body.mobile-mode table.dre-table tr {
+            display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 5px;
+            align-items: center; padding: 11px 12px; border-bottom: 1px solid var(--border-color);
+        }
+        body.mobile-mode table.dre-table tr.row-sub:not(.open),
+        body.mobile-mode table.dre-table tr.row-detail:not(.open) { display: none; }
+        body.mobile-mode table.dre-table td { display: block; padding: 0 !important; border: none; min-width: 0; }
+        body.mobile-mode table.dre-table td:nth-child(1) { grid-column: 1; grid-row: 1; overflow-wrap: anywhere; }
+        body.mobile-mode table.dre-table td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: 11px; color: var(--text-secondary); }
+        body.mobile-mode table.dre-table td:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; font-size: 13px; }
+        body.mobile-mode table.dre-table td[colspan] { grid-column: 1 / -1; grid-row: 1; }
+        body.mobile-mode table.dre-table tr.row-group td:nth-child(1) { font-size: 12px; }
+        body.mobile-mode table.dre-table tr.row-sub { padding-left: 22px; }
+        body.mobile-mode table.dre-table tr.row-detail {
+            margin: 6px 0 6px 14px; padding: 10px; border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-purple); border-radius: 8px;
+        }
+        body.mobile-mode table.dre-table tr.row-detail td:nth-child(1) { grid-column: 1 / -1; line-height: 1.55; color: var(--text-primary); }
+        body.mobile-mode table.dre-table tr.row-detail td:nth-child(3) { grid-row: 2; }
     </style>
 </head>
 <body id="bodyTag">
@@ -149,11 +204,12 @@
             <div class="author-signature">Autor do Relatório: Samuel Oliveira Silva</div>
         </div>
         <div class="header-actions">
-            <button id="btnAuditorToggle" class="table-toggle-btn" onclick="toggleAuditorVersion()">📋 Ver Tabela Analítica</button>
             <div class="view-toggle-btns">
                 <button class="toggle-btn active" onclick="setViewMode('pc', this)">🖥 Visão PC</button>
                 <button class="toggle-btn" onclick="setViewMode('mobile', this)">📱 Visão Mobile</button>
             </div>
+            <button id="btnAuditorToggle" class="table-toggle-btn" onclick="toggleAuditorVersion()">📋 Ver Tabela Analítica</button>
+            <a id="btnQuarentena" class="quarentena-btn" href="saidas/relatorios_auditoria/pendencias_lancamentos.html" target="_blank" rel="noopener" data-relatorio="ausente" title="Abre a tela de quarentena de lançamentos (só na máquina local)" hidden>🧪 Quarentena</a>
         </div>
     </header>
 
@@ -200,7 +256,7 @@
                 </div>
             </div>
 
-            <div style="max-height: 550px; overflow-y: auto;">
+            <div class="dre-scroll">
                 <table class="dre-table">
                     <thead>
                         <tr>
@@ -239,6 +295,25 @@
         if (mode === 'mobile') { body.classList.add('mobile-mode'); } else { body.classList.remove('mobile-mode'); }
     }
 
+    if (window.matchMedia('(max-width: 768px)').matches) {
+        setViewMode('mobile', document.querySelectorAll('.view-toggle-btns .toggle-btn')[1]);
+    }
+
+    // A tela de quarentena tem dados financeiros e não é publicada: o botão só existe fora do GitHub.
+    (function prepararBotaoQuarentena() {
+        const btn = document.getElementById('btnQuarentena');
+        const local = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+        if (!btn || !local) return;
+        btn.hidden = false;
+        if (btn.dataset.relatorio !== 'presente') {
+            btn.classList.add('indisponivel');
+            btn.removeAttribute('href');
+            btn.setAttribute('aria-disabled', 'true');
+            btn.title = 'Relatório de quarentena ainda não gerado: correr validar_entrada.bat';
+            btn.innerHTML = '⚠️ Quarentena: sem relatório';
+        }
+    })();
+
     function toggleAuditorVersion() {
         const defaultContent = document.getElementById('defaultDashboardContent');
         const analyticsCard = document.getElementById('analyticsTableCard');
@@ -255,7 +330,16 @@
     }
 
     function toggleRow(className) {
-        document.querySelectorAll('.' + className).forEach(el => el.classList.toggle('open'));
+        document.querySelectorAll('.' + className).forEach(el => {
+            const aberto = el.classList.toggle('open');
+            if (!aberto && el.classList.contains('row-sub')) {
+                let filho = el.nextElementSibling;
+                while (filho && filho.classList.contains('row-detail')) {
+                    filho.classList.remove('open');
+                    filho = filho.nextElementSibling;
+                }
+            }
+        });
     }
 
     function selecionarTodosMeses(status) {
@@ -285,7 +369,6 @@
                     somaCategoria += valor;
                 } else {
                     linha.style.display = 'none';
-                    linha.classList.remove('open');
                 }
             });
             if (catClass === 'detail-frete') {
