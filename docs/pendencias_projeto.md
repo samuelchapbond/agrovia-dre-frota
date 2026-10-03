@@ -66,7 +66,8 @@ Regras da lista:
 ### 🟡 Média
 
 - [ ] **M1. Commit das alterações locais** — há trabalho pronto e testado ainda fora do git (o rodapé do painel mostra `+local`).
-  - Em 03/10/2026 18:42: `src/atualizar_dashboard.py` (motor para com erro se faltar um campo no template), `atualizar.bat`, `atualizar_local.bat`, `docs/pendencias_projeto.md`, `ferramentas/limpar_desktop_ini_git.bat` e `ferramentas/teste_regras_firestore.py` (novos).
+  - Commit `aad55e4` (03/10/2026): `atualizar.bat`, `atualizar_local.bat`, `docs/pendencias_projeto.md`, `ferramentas/limpar_desktop_ini_git.bat` e `ferramentas/teste_regras_firestore.py` já publicados.
+  - Falta: `src/atualizar_dashboard.py` (motor para com erro se faltar um campo no template; motor e auditor passaram com ele, APROVADO) e `.cursorrules`. O `index.html` local só muda data e versão; vai no próximo `atualizar.bat`.
   - Quem age: SAMUEL (pedir o commit). Desde: 03/10/2026.
 - [ ] **M2. Motor usa o `index.html` antigo quando falta o template** — se `templates/template.html` for apagado ou movido, o motor gera o painel a partir do `index.html` anterior, sem avisar. Proposta: falhar com mensagem clara.
   - Onde: `src/atualizar_dashboard.py` (`arquivo_base = CAMINHO_TEMPLATE if ... else CAMINHO_INDEX`).
