@@ -13,6 +13,7 @@ __pycache__/
 .env
 # Chave de serviço do Firebase e outros segredos locais
 config_local/
+chave_firebase/
 
 # Locks temporários do Excel
 ~$*
