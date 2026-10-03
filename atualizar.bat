@@ -6,6 +6,7 @@ echo ====================================================================
 echo   AGROVIA - MOTOR DE GESTAO DE CUSTO DE FROTA (v8.32 Cloud Auto)
 echo ====================================================================
 echo.
+call ferramentas\limpar_desktop_ini_git.bat
 if exist "dados\entrada_quarentena\*.xls*" (
     echo [0/4] Ficheiros em dados\entrada_quarentena: a validar antes de entrarem em dados\banco_de_dados...
     python src\validar_entrada.py

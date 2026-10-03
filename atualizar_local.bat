@@ -7,6 +7,7 @@ echo   AGROVIA - MOTOR DE GESTAO DE CUSTO DE FROTA (Atualizacao LOCAL)
 echo   Nada e enviado para o GitHub. Para publicar use atualizar.bat
 echo ====================================================================
 echo.
+call ferramentas\limpar_desktop_ini_git.bat
 echo [1/3] A executar o motor Python e a processar os dados do Sankhya...
 python src\atualizar_dashboard.py
 
