@@ -3,7 +3,7 @@ import os
 import sys
 import numpy as np
 
-from fontes_dados import escrever_inventario
+from fontes_dados import PASTA_RELATORIOS, escrever_inventario
 from regras_lancamento import (
     PLACA_FROTA_PRINCIPAL,
     carregar_excel_inteligente,
@@ -39,7 +39,7 @@ def classificar_categoria_despesa(natureza, historico):
     else:
         return 'Outros Custos'
 
-CAMINHO_VEREDITO = os.path.join("relatorios_auditoria", "veredito_publicacao.txt")
+CAMINHO_VEREDITO = os.path.join(PASTA_RELATORIOS, "veredito_publicacao.txt")
 
 def mes_referencia(data_raw):
     """Ano-mês (AAAA-MM) com o mesmo parse de datas do atualizar_dashboard.py."""

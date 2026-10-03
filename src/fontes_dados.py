@@ -7,10 +7,13 @@ import datetime
 import os
 import unicodedata
 
-PASTA_PROJETO = os.path.dirname(os.path.abspath(__file__))
+PASTA_PROJETO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASTA_DADOS = os.path.join(PASTA_PROJETO, "Banco_de_Dados")
 PASTA_QUARENTENA = os.path.join(PASTA_PROJETO, "Entrada_Quarentena")
 PASTA_RELATORIOS = os.path.join(PASTA_PROJETO, "relatorios_auditoria")
+PASTA_BACKUP = os.path.join(PASTA_PROJETO, "backup_relatorios")
+CAMINHO_TEMPLATE = os.path.join(PASTA_PROJETO, "templates", "template.html")
+CAMINHO_INDEX = os.path.join(PASTA_PROJETO, "index.html")
 CAMINHO_INVENTARIO = os.path.join(PASTA_RELATORIOS, "inventario_fontes.txt")
 
 

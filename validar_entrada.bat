@@ -8,7 +8,7 @@ echo   Coloque o Excel exportado do Sankhya em Entrada_Quarentena\
 echo ====================================================================
 echo.
 
-python validar_entrada.py %*
+python src\validar_entrada.py %*
 
 if errorlevel 2 (
     echo.

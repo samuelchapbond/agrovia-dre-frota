@@ -1,6 +1,9 @@
+import os
+import sys
 import pandas as pd
 import unicodedata
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 from fontes_dados import listar_ficheiros_fonte
 
 def limpar_texto(texto):

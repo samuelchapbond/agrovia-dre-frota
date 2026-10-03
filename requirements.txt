@@ -1,0 +1,11 @@
+# Produção (src/, ferramentas/) - Python 3.14
+pandas==3.0.6
+numpy==2.5.3
+openpyxl==3.1.5
+xlrd==2.0.2
+
+# Laboratório (laboratorio/) - não necessário para o painel
+python-dotenv==1.2.4
+langchain-google-genai==4.4.0
+langgraph==1.2.12
+deep-translator==1.11.4

@@ -1,7 +1,10 @@
+import os
 import re
 
+CAMINHO_TEMPLATE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates", "template.html")
+
 try:
-    with open('template.html', 'r', encoding='utf-8') as f:
+    with open(CAMINHO_TEMPLATE, 'r', encoding='utf-8') as f:
         html = f.read()
     
     print("=== DIAGNÓSTICO DO TEMPLATE.HTML ===")

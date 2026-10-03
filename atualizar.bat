@@ -8,14 +8,14 @@ echo ====================================================================
 echo.
 if exist "Entrada_Quarentena\*.xls*" (
     echo [0/4] Ficheiros em Entrada_Quarentena: a validar antes de entrarem no Banco_de_Dados...
-    python validar_entrada.py
+    python src\validar_entrada.py
     echo     Pendencias em: relatorios_auditoria\pendencias_lancamentos.xlsx / .html
     echo     Ficheiros retidos nao entram no painel desta execucao.
     echo.
 )
 
 echo [1/4] A executar o motor Python e a processar os dados do Sankhya...
-python atualizar_dashboard.py
+python src\atualizar_dashboard.py
 
 if errorlevel 1 (
     echo.
@@ -30,7 +30,7 @@ if errorlevel 1 (
 
 echo.
 echo [2/4] A executar o auditor antes de publicar...
-python auditoria_completa.py
+python src\auditoria_completa.py
 
 if errorlevel 1 (
     echo.

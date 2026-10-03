@@ -7,7 +7,15 @@ import json
 import sys
 import re
 
-from fontes_dados import escrever_inventario, listar_ficheiros_abastecimento
+from fontes_dados import (
+    CAMINHO_INDEX,
+    CAMINHO_TEMPLATE,
+    PASTA_BACKUP,
+    PASTA_DADOS,
+    PASTA_RELATORIOS,
+    escrever_inventario,
+    listar_ficheiros_abastecimento,
+)
 
 VERSAO_ATUAL = "v8.36-RobustAuditEngine"
 
@@ -23,15 +31,14 @@ def configurar_stdout_utf8() -> None:
 
 configurar_stdout_utf8()
 
-os.makedirs("Banco_de_Dados", exist_ok=True)
-os.makedirs("versoes_codigo", exist_ok=True)
-os.makedirs("backup_relatorios", exist_ok=True)
-os.makedirs("relatorios_auditoria", exist_ok=True)
+os.makedirs(PASTA_DADOS, exist_ok=True)
+os.makedirs(PASTA_BACKUP, exist_ok=True)
+os.makedirs(PASTA_RELATORIOS, exist_ok=True)
 
 PLACA_FROTA_PRINCIPAL = "OOM9749"
 
-CAMINHO_LOG = os.path.join("relatorios_auditoria", "log_execucao.txt")
-CAMINHO_LOG_HISTORICO = os.path.join("backup_relatorios", "log_execucao_historico.txt")
+CAMINHO_LOG = os.path.join(PASTA_RELATORIOS, "log_execucao.txt")
+CAMINHO_LOG_HISTORICO = os.path.join(PASTA_BACKUP, "log_execucao_historico.txt")
 
 def iniciar_log_execucao():
     """log_execucao.txt guarda só a execução atual; as anteriores vão para o histórico."""
@@ -439,7 +446,7 @@ def main():
     resultado_liquido = float(total_receita - total_despesa)
     margem_liquida = float((resultado_liquido / total_receita * 100) if total_receita > 0 else 0)
 
-    arquivo_base = 'template.html' if os.path.exists('template.html') else 'index.html'
+    arquivo_base = CAMINHO_TEMPLATE if os.path.exists(CAMINHO_TEMPLATE) else CAMINHO_INDEX
     try:
         with open(arquivo_base, 'r', encoding='utf-8') as f:
             html_template = f.read()
@@ -594,7 +601,7 @@ def main():
 
     html_final = re.sub(r'<tbody>.*?<\/tbody>', f"<tbody>{html_linhas_tabela}\n                    </tbody>", html_final, flags=re.DOTALL)
 
-    caminho_index = os.path.abspath("index.html")
+    caminho_index = CAMINHO_INDEX
     try:
         with open(caminho_index, 'w', encoding='utf-8') as f:
             f.write(html_final)
