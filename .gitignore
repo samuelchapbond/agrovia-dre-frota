@@ -15,11 +15,11 @@ __pycache__/
 # Locks temporários do Excel
 ~$*
 
-# Dados financeiros do Sankhya (não publicar)
-Banco_de_Dados/*.xls
-Banco_de_Dados/*.xlsx
-
-# Saídas regeneradas a cada execução
-relatorios_auditoria/log_execucao.txt
-relatorios_auditoria/inventario_fontes.txt
-backup_relatorios/log_execucao_historico.txt
+# Repositório público: dados financeiros e relatórios nunca são publicados.
+# Só entram no git o código, o template e o index.html aprovado pela auditoria.
+Banco_de_Dados/
+Entrada_Quarentena/
+relatorios_auditoria/
+backup_relatorios/
+versao_codigo/
+versoes_codigo/
