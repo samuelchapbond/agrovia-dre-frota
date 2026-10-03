@@ -36,7 +36,7 @@ Formato obrigatório no início da resposta útil:
 
 Missão: implementar, corrigir e manter o código que o SAMUEL pede, no sítio certo, sem teatro.
 
-Âmbito deste projeto (estrutura descrita no `README.md`): código de produção em `src/` (`atualizar_dashboard.py`, `auditoria_completa.py`, `validar_entrada.py`, `fontes_dados.py`, `regras_lancamento.py`), diagnósticos em `ferramentas/`, experiências em `laboratorio/`, `templates/template.html`, `index.html` (raiz, publicado no GitHub Pages), `.bat` na raiz, pastas de dados `Banco_de_Dados/`, `Entrada_Quarentena/`, saídas `relatorios_auditoria/`, `backup_relatorios/`.
+Âmbito deste projeto (estrutura descrita no `README.md`): código de produção em `src/` (`atualizar_dashboard.py`, `auditoria_completa.py`, `validar_entrada.py`, `fontes_dados.py`, `regras_lancamento.py`), diagnósticos em `ferramentas/`, experiências em `laboratorio/`, `templates/template.html`, `index.html` (raiz, publicado no GitHub Pages), `.bat` na raiz, pastas de dados `dados/banco_de_dados/`, `dados/entrada_quarentena/`, saídas `saidas/relatorios_auditoria/`, `saidas/backup_relatorios/`.
 - Repositório público: dados, relatórios e backups nunca entram no git (ver `.gitignore`). Caminhos de pastas vêm de `src/fontes_dados.py`, nunca relativos à pasta de execução.
 
 Critérios:
@@ -58,7 +58,7 @@ Critérios:
 - Distinguir facto observado, inferência e hipótese.
 - Procurar causa raiz: duplicados, filtros de período, sinal invertido, competência vs caixa, cópias `*Copia.xls`, ficheiros `~$`, joins quebrados, chaves de veículo/placa.
 - Preservar cadeia de custódia: não “corrigir” a fonte bruta do Sankhya; corrigir o pipeline ou documentar a anomalia.
-- Relatórios de auditoria devem ser reproduzíveis (comando, entradas, saídas em `relatorios_auditoria/`).
+- Relatórios de auditoria devem ser reproduzíveis (comando, entradas, saídas em `saidas/relatorios_auditoria/`).
 - Se os dados não batem, o veredito é “não fecha”, com o delta e as pistas — nunca arredondar para fechar o discurso.
 
 ---
@@ -107,12 +107,12 @@ Critérios:
 
 ## Trava de fonte de dados (todos os Chaps e qualquer IA)
 
-A única fonte de dados válida é o conteúdo ATUAL da pasta `Banco_de_Dados/`.
+A única fonte de dados válida é o conteúdo ATUAL da pasta `dados/banco_de_dados/`.
 
-- Antes de citar qualquer ficheiro, período ou número, listar `Banco_de_Dados/` no momento da resposta. O `relatorios_auditoria/inventario_fontes.txt` (regravado a cada execução) serve de apoio, mas a listagem real prevalece se divergir.
-- Ficheiro que não está hoje em `Banco_de_Dados/` não existe para efeito de análise: não o mencionar, não o recomendar repor, não o usar para explicar números.
+- Antes de citar qualquer ficheiro, período ou número, listar `dados/banco_de_dados/` no momento da resposta. O `saidas/relatorios_auditoria/inventario_fontes.txt` (regravado a cada execução) serve de apoio, mas a listagem real prevalece se divergir.
+- Ficheiro que não está hoje em `dados/banco_de_dados/` não existe para efeito de análise: não o mencionar, não o recomendar repor, não o usar para explicar números.
 - São ignorados também dentro da pasta: `~$*` (lock do Excel), nomes com "Copia", e tudo o que não for `.xls`/`.xlsx`. A regra está em `src/fontes_dados.py`; qualquer script novo que leia dados tem de usar `listar_ficheiros_fonte()` desse módulo.
-- `log_execucao.txt` contém só a última execução. `backup_relatorios/log_execucao_historico.txt`, relatórios antigos, histórico git e conversas anteriores são HISTÓRICO: só consultar se o SAMUEL pedir explicitamente, e rotular como "histórico" na resposta.
+- `log_execucao.txt` contém só a última execução. `saidas/backup_relatorios/log_execucao_historico.txt`, relatórios antigos, histórico git e conversas anteriores são HISTÓRICO: só consultar se o SAMUEL pedir explicitamente, e rotular como "histórico" na resposta.
 - Lacuna de dados (ex.: só há receita, falta despesa) é declarada a partir do que está na pasta, sem nomear ficheiros que já saíram dela.
 
 ---

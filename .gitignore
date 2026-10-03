@@ -17,6 +17,10 @@ __pycache__/
 
 # Repositório público: dados financeiros e relatórios nunca são publicados.
 # Só entram no git o código, o template e o index.html aprovado pela auditoria.
+dados/
+saidas/
+
+# Nomes antigos das pastas (caso alguma ferramenta as recrie)
 Banco_de_Dados/
 Entrada_Quarentena/
 relatorios_auditoria/

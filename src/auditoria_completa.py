@@ -88,8 +88,8 @@ meses_receita = set()
 meses_custos = set()
 
 if not excel_files:
-    print("\n❌ [ERRO] Nenhum ficheiro Excel encontrado dentro da pasta 'Banco_de_Dados'.")
-    falhas_auditoria.append("Nenhum ficheiro Excel válido em Banco_de_Dados.")
+    print("\n❌ [ERRO] Nenhum ficheiro Excel encontrado dentro da pasta 'dados/banco_de_dados'.")
+    falhas_auditoria.append("Nenhum ficheiro Excel válido em dados/banco_de_dados.")
 else:
     for arq in excel_files:
         print(f"\n📂 Ficheiro em análise: {arq}")
@@ -293,7 +293,7 @@ if excel_files:
     if meses_receita and meses_custos:
         periodo_receita = (min(meses_receita), max(meses_receita))
         periodo_custos = (min(meses_custos), max(meses_custos))
-        # Todos os meses e provisões de Banco_de_Dados entram no painel; a diferença de período só avisa.
+        # Todos os meses e provisões de dados/banco_de_dados entram no painel; a diferença de período só avisa.
         if periodo_receita != periodo_custos:
             avisos_auditoria.append(
                 f"Período da receita ({periodo_receita[0]} a {periodo_receita[1]}) diferente do período dos custos "

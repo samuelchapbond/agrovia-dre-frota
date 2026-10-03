@@ -20,7 +20,7 @@ class EstadoFinanceiro(TypedDict):
 
 # 3. As tarefas (Nós) do nosso robô financeiro em modo seguro
 def coletar_dados(state: EstadoFinanceiro):
-    print("📈 Lendo a planilha real da pasta Banco_de_Dados (Modo Leitura Segura)...")
+    print("📈 Lendo a planilha real da pasta dados/banco_de_dados (Modo Leitura Segura)...")
     df = pd.read_excel(state["caminho_arquivo"])
     
     # Pegamos um resumo inicial (ex: 50 linhas) para análise do agente
@@ -40,7 +40,7 @@ def auditar(state: EstadoFinanceiro):
     return {"divergencias": [resposta.content]}
 
 def gerar_relatorio_e_salvar(state: EstadoFinanceiro):
-    print("📝 Formatando o relatório para impressão e salvando na pasta relatorios_auditoria...")
+    print("📝 Formatando o relatório para impressão e salvando na pasta saidas/relatorios_auditoria...")
     prompt = f"Com base na auditoria, formate um relatório limpo e pronto para impressão (em formato de texto estruturado) para o operador corrigir os lançamentos: {state['divergencias']}"
     relatorio = llm.invoke(prompt)
     
@@ -51,9 +51,9 @@ def gerar_relatorio_e_salvar(state: EstadoFinanceiro):
     else:
         texto_final = str(conteudo)
         
-    # Salvando automaticamente na pasta correta com o nome exato relatorios_auditoria
-    caminho_saida = "relatorios_auditoria/relatorio_correcao_operador.txt"
-    os.makedirs("relatorios_auditoria", exist_ok=True)
+    # Salvando automaticamente na pasta correta com o nome exato saidas/relatorios_auditoria
+    caminho_saida = "saidas/relatorios_auditoria/relatorio_correcao_operador.txt"
+    os.makedirs("saidas/relatorios_auditoria", exist_ok=True)
     with open(caminho_saida, "w", encoding="utf-8") as f:
         f.write(texto_final)
         
@@ -75,13 +75,13 @@ workflow.add_edge("relatar", END)
 app = workflow.compile()
 
 if __name__ == "__main__":
-    arquivo_teste = "Banco_de_Dados/mes01-2026.xlsx"
+    arquivo_teste = "dados/banco_de_dados/mes01-2026.xlsx"
     
     if os.path.exists(arquivo_teste):
         print("🚀 Rodando o agente em modo de auditoria de apoio...\n")
         resultado = app.invoke({"caminho_arquivo": arquivo_teste})
         print("\n--- PROCESSO CONCLUÍDO COM SUCESSO ---")
-        print("O arquivo de texto foi gerado dentro da pasta 'relatorios_auditoria'!")
+        print("O arquivo de texto foi gerado dentro da pasta 'saidas/relatorios_auditoria'!")
     else:
         print(f"⚠️ Atenção: Não encontramos o arquivo no caminho '{arquivo_teste}'.")
 

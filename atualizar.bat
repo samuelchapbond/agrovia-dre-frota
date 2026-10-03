@@ -6,10 +6,10 @@ echo ====================================================================
 echo   AGROVIA - MOTOR DE GESTAO DE CUSTO DE FROTA (v8.32 Cloud Auto)
 echo ====================================================================
 echo.
-if exist "Entrada_Quarentena\*.xls*" (
-    echo [0/4] Ficheiros em Entrada_Quarentena: a validar antes de entrarem no Banco_de_Dados...
+if exist "dados\entrada_quarentena\*.xls*" (
+    echo [0/4] Ficheiros em dados\entrada_quarentena: a validar antes de entrarem em dados\banco_de_dados...
     python src\validar_entrada.py
-    echo     Pendencias em: relatorios_auditoria\pendencias_lancamentos.xlsx / .html
+    echo     Pendencias em: saidas\relatorios_auditoria\pendencias_lancamentos.xlsx / .html
     echo     Ficheiros retidos nao entram no painel desta execucao.
     echo.
 )
@@ -37,7 +37,7 @@ if errorlevel 1 (
     echo ====================================================================
     echo [X] PUBLICACAO BLOQUEADA: a auditoria falhou.
     echo     Nada foi enviado para o GitHub.
-    echo Motivos em: relatorios_auditoria\veredito_publicacao.txt
+    echo Motivos em: saidas\relatorios_auditoria\veredito_publicacao.txt
     echo O index.html local NAO esta auditado e nao deve ser commitado a mao.
     echo ====================================================================
     echo.

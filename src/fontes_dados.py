@@ -1,6 +1,6 @@
 """Fonte única de verdade sobre quais ficheiros de dados existem para análise.
 
-Só contam os Excel presentes AGORA em Banco_de_Dados/. Logs, relatórios antigos,
+Só contam os Excel presentes AGORA em dados/banco_de_dados/. Logs, relatórios antigos,
 backups e histórico git não são fonte de dados.
 """
 import datetime
@@ -8,10 +8,10 @@ import os
 import unicodedata
 
 PASTA_PROJETO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PASTA_DADOS = os.path.join(PASTA_PROJETO, "Banco_de_Dados")
-PASTA_QUARENTENA = os.path.join(PASTA_PROJETO, "Entrada_Quarentena")
-PASTA_RELATORIOS = os.path.join(PASTA_PROJETO, "relatorios_auditoria")
-PASTA_BACKUP = os.path.join(PASTA_PROJETO, "backup_relatorios")
+PASTA_DADOS = os.path.join(PASTA_PROJETO, "dados", "banco_de_dados")
+PASTA_QUARENTENA = os.path.join(PASTA_PROJETO, "dados", "entrada_quarentena")
+PASTA_RELATORIOS = os.path.join(PASTA_PROJETO, "saidas", "relatorios_auditoria")
+PASTA_BACKUP = os.path.join(PASTA_PROJETO, "saidas", "backup_relatorios")
 CAMINHO_TEMPLATE = os.path.join(PASTA_PROJETO, "templates", "template.html")
 CAMINHO_INDEX = os.path.join(PASTA_PROJETO, "index.html")
 CAMINHO_INVENTARIO = os.path.join(PASTA_RELATORIOS, "inventario_fontes.txt")
@@ -49,7 +49,7 @@ def _ficheiros_na_pasta(pasta: str = PASTA_DADOS) -> list:
 
 
 def listar_ficheiros_fonte() -> list:
-    """Caminhos absolutos dos Excel válidos em Banco_de_Dados.
+    """Caminhos absolutos dos Excel válidos em dados/banco_de_dados.
 
     Os extratos "Financeiro" (período completo) vêm primeiro para prevalecerem
     na deduplicação por Nro Único.
@@ -63,7 +63,7 @@ def listar_ficheiros_fonte() -> list:
 
 
 def listar_ficheiros_abastecimento() -> list:
-    """Caminhos absolutos dos relatórios de abastecimento válidos em Banco_de_Dados."""
+    """Caminhos absolutos dos relatórios de abastecimento válidos em dados/banco_de_dados."""
     validos = [
         n for n in _ficheiros_na_pasta()
         if motivo_exclusao(n) is None and eh_abastecimento(n)
@@ -72,16 +72,16 @@ def listar_ficheiros_abastecimento() -> list:
 
 
 def listar_ficheiros_quarentena() -> list:
-    """Caminhos absolutos dos Excel à espera de validação em Entrada_Quarentena.
+    """Caminhos absolutos dos Excel à espera de validação em dados/entrada_quarentena.
 
-    Não são fonte de análise: só passam a contar depois de promovidos para Banco_de_Dados.
+    Não são fonte de análise: só passam a contar depois de promovidos para dados/banco_de_dados.
     """
     validos = [n for n in _ficheiros_na_pasta(PASTA_QUARENTENA) if motivo_exclusao(n) is None]
     return [os.path.join(PASTA_QUARENTENA, n) for n in validos]
 
 
 def escrever_inventario(script: str) -> list:
-    """Regrava o inventário com o conteúdo atual de Banco_de_Dados e devolve as fontes válidas."""
+    """Regrava o inventário com o conteúdo atual de dados/banco_de_dados e devolve as fontes válidas."""
     fontes = listar_ficheiros_fonte()
     abastecimento = listar_ficheiros_abastecimento()
     ignorados = [
@@ -89,7 +89,7 @@ def escrever_inventario(script: str) -> list:
     ]
 
     linhas = [
-        "INVENTÁRIO DE FONTES - Banco_de_Dados (estado atual da pasta)",
+        "INVENTÁRIO DE FONTES - dados/banco_de_dados (estado atual da pasta)",
         f"Gerado em: {datetime.datetime.now():%Y-%m-%d %H:%M:%S} por {script}",
         "Só os ficheiros listados em 'FONTES VÁLIDAS' existem para efeito de análise.",
         "=" * 70,

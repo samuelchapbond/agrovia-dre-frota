@@ -1,7 +1,7 @@
 """Leitura de extratos Sankhya e regras de validação de lançamentos.
 
-Partilhado por auditoria_completa.py (auditoria do que já está em Banco_de_Dados)
-e validar_entrada.py (quarentena antes de entrar em Banco_de_Dados).
+Partilhado por auditoria_completa.py (auditoria do que já está em dados/banco_de_dados)
+e validar_entrada.py (quarentena antes de entrar em dados/banco_de_dados).
 """
 import os
 import re

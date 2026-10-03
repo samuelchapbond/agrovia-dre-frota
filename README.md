@@ -11,8 +11,8 @@ Gestão e Auditoria Técnica: Samuel O Silva.
 | Atualizar o painel só no computador | `atualizar_local.bat` |
 | Atualizar, auditar e publicar no GitHub Pages | `atualizar.bat` |
 
-Fluxo dos dados: Excel do Sankhya → `Entrada_Quarentena/` → `validar_entrada.bat` → `Banco_de_Dados/` → motor → auditor → `index.html`.
-A publicação é bloqueada se o auditor reprovar (`relatorios_auditoria/veredito_publicacao.txt`).
+Fluxo dos dados: Excel do Sankhya → `dados/entrada_quarentena/` → `validar_entrada.bat` → `dados/banco_de_dados/` → motor → auditor → `index.html`.
+A publicação é bloqueada se o auditor reprovar (`saidas/relatorios_auditoria/veredito_publicacao.txt`).
 
 ## Instalação
 
@@ -40,10 +40,12 @@ copy .env.example .env   (só para o laboratório)
 ├── DRE-Caminhao/         especificação (spec-kit)
 │
 │   ── fora do git (dados e saídas locais) ──
-├── Banco_de_Dados/       única fonte de dados válida
-├── Entrada_Quarentena/   Excel à espera de validação
-├── relatorios_auditoria/ logs, inventário, veredito, pendências
-└── backup_relatorios/    histórico de logs e versões antigas do painel
+├── dados/
+│   ├── banco_de_dados/       única fonte de dados válida
+│   └── entrada_quarentena/   Excel à espera de validação
+└── saidas/
+    ├── relatorios_auditoria/ logs, inventário, veredito, pendências
+    └── backup_relatorios/    histórico de logs e versões antigas do painel
 ```
 
 ## Regras do padrão

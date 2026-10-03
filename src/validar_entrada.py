@@ -1,10 +1,10 @@
-"""Quarentena de lançamentos: valida os Excel em Entrada_Quarentena/ antes de entrarem em Banco_de_Dados/.
+"""Quarentena de lançamentos: valida os Excel em dados/entrada_quarentena/ antes de entrarem em dados/banco_de_dados/.
 
 Uso:
     python validar_entrada.py                 # valida, gera pendências e promove ficheiros sem bloqueantes
     python validar_entrada.py --sem-promover  # só valida e gera pendências (não move nada)
 
-Saídas em relatorios_auditoria/: pendencias_lancamentos.xlsx, pendencias_lancamentos.html, log_quarentena.txt.
+Saídas em saidas/relatorios_auditoria/: pendencias_lancamentos.xlsx, pendencias_lancamentos.html, log_quarentena.txt.
 A correção é sempre feita no Sankhya, com nova exportação; o Excel exportado não é editado à mão.
 """
 import argparse
@@ -128,7 +128,7 @@ def gravar_xlsx(erros: list, resumo_ficheiros: list, gerado_em: str) -> str:
     for r in resumo_ficheiros:
         wr.append([r["ficheiro"], r["bloqueantes"], r["avisos"], r["decisao"]])
     wr.append([])
-    wr.append(["Bloqueante: impede a entrada em Banco_de_Dados até corrigir no Sankhya e reexportar."])
+    wr.append(["Bloqueante: impede a entrada em dados/banco_de_dados até corrigir no Sankhya e reexportar."])
     wr.append(["Aviso: não impede; confirmar e marcar Status (Corrigido no Sankhya / Justificado)."])
     for col, largura in zip("ABCD", (45, 12, 10, 60)):
         wr.column_dimensions[col].width = largura
@@ -145,7 +145,7 @@ def gravar_xlsx(erros: list, resumo_ficheiros: list, gerado_em: str) -> str:
 
 
 def promover(caminho: str) -> str:
-    """Move o ficheiro para Banco_de_Dados; um homónimo existente vai para substituidos/."""
+    """Move o ficheiro para dados/banco_de_dados; um homónimo existente vai para substituidos/."""
     nome = os.path.basename(caminho)
     destino = os.path.join(PASTA_DADOS, nome)
     detalhe = ""
@@ -155,7 +155,7 @@ def promover(caminho: str) -> str:
         shutil.move(destino, antigo)
         detalhe = f" (versão anterior movida para substituidos/{os.path.basename(antigo)})"
     shutil.move(caminho, destino)
-    return f"PROMOVIDO para Banco_de_Dados{detalhe}"
+    return f"PROMOVIDO para dados/banco_de_dados{detalhe}"
 
 
 def registar_log(linhas: list) -> None:
@@ -395,7 +395,7 @@ function renderResumos() {{
         td.appendChild(s);
         tbF.appendChild(tr);
     }});
-    if (!FICHEIROS.length) tbF.innerHTML = '<tr><td colspan="4" class="empty">Nenhum ficheiro em Entrada_Quarentena.</td></tr>';
+    if (!FICHEIROS.length) tbF.innerHTML = '<tr><td colspan="4" class="empty">Nenhum ficheiro em dados/entrada_quarentena.</td></tr>';
 
     const porOp = {{}}, porRegra = {{}};
     ERROS.forEach(e => {{
@@ -475,7 +475,7 @@ renderPendencias();
 
 def main() -> int:
     configurar_stdout_utf8()
-    parser = argparse.ArgumentParser(description="Valida os Excel em Entrada_Quarentena antes de entrarem em Banco_de_Dados.")
+    parser = argparse.ArgumentParser(description="Valida os Excel em dados/entrada_quarentena antes de entrarem em dados/banco_de_dados.")
     parser.add_argument("--sem-promover", action="store_true", help="só valida e gera pendências; não move ficheiros")
     args = parser.parse_args()
 
@@ -489,7 +489,7 @@ def main() -> int:
 
     ficheiros = listar_ficheiros_quarentena()
     if not ficheiros:
-        print(" Nenhum ficheiro Excel em Entrada_Quarentena/. Nada a validar.")
+        print(" Nenhum ficheiro Excel em dados/entrada_quarentena/. Nada a validar.")
         return 0
 
     anteriores = ler_status_anteriores()
@@ -533,9 +533,9 @@ def main() -> int:
     registar_log(log)
 
     print("-" * 100)
-    print(f" Planilha do operador : relatorios_auditoria\\{os.path.basename(caminho_xlsx)}")
-    print(f" Resumo visual (HTML) : relatorios_auditoria\\{os.path.basename(CAMINHO_HTML)}")
-    print(f" Log                  : relatorios_auditoria\\{os.path.basename(CAMINHO_LOG)}")
+    print(f" Planilha do operador : saidas\\relatorios_auditoria\\{os.path.basename(caminho_xlsx)}")
+    print(f" Resumo visual (HTML) : saidas\\relatorios_auditoria\\{os.path.basename(CAMINHO_HTML)}")
+    print(f" Log                  : saidas\\relatorios_auditoria\\{os.path.basename(CAMINHO_LOG)}")
     print("=" * 100)
 
     return 2 if any(r["decisao"].startswith("RETIDO") for r in resumo_ficheiros) else 0

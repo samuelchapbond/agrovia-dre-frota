@@ -30,7 +30,7 @@ if errorlevel 1 (
     echo ====================================================================
     echo [!] AUDITORIA REPROVADA: o painel local foi gerado, mas NAO esta
     echo     apto a ser publicado.
-    echo Motivos em: relatorios_auditoria\veredito_publicacao.txt
+    echo Motivos em: saidas\relatorios_auditoria\veredito_publicacao.txt
     echo ====================================================================
     echo.
     pause

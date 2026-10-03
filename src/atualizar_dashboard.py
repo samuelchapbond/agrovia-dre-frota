@@ -198,7 +198,7 @@ def apurar_km_litros(placa):
     """
     arquivos = listar_ficheiros_abastecimento()
     if not arquivos:
-        registar_log("PENDENTE", "Sem relatório de abastecimento em Banco_de_Dados: CPK e Km/L = 'Sem dado'.")
+        registar_log("PENDENTE", "Sem relatório de abastecimento em dados/banco_de_dados: CPK e Km/L = 'Sem dado'.")
         return None, None, None
 
     partes = []
@@ -267,10 +267,10 @@ def main():
     registar_log("INFO", f"Início da execução do motor [{VERSAO_ATUAL}].")
 
     todos_arquivos = escrever_inventario("atualizar_dashboard.py")
-    registar_log("INFO", f"Fontes atuais em Banco_de_Dados: {[os.path.basename(f) for f in todos_arquivos]}")
+    registar_log("INFO", f"Fontes atuais em dados/banco_de_dados: {[os.path.basename(f) for f in todos_arquivos]}")
 
     if not todos_arquivos:
-        registar_log("ERRO_CRITICO", "Nenhum ficheiro Excel válido encontrado na pasta Banco_de_Dados.")
+        registar_log("ERRO_CRITICO", "Nenhum ficheiro Excel válido encontrado na pasta dados/banco_de_dados.")
         sys.exit(1)
 
     dfs_consolidados = []
