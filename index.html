@@ -63,8 +63,6 @@
         }
         .quarentena-btn:hover { background: var(--accent-yellow); color: #0f1e17; }
         .quarentena-btn[hidden] { display: none; }
-        .quarentena-btn.indisponivel { opacity: 0.55; cursor: not-allowed; border-style: dashed; }
-        .quarentena-btn.indisponivel:hover { background: rgba(251, 191, 36, 0.12); color: var(--accent-yellow); }
         
         #defaultDashboardContent { display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; }
         #defaultDashboardContent.hidden-content { display: none !important; }
@@ -86,12 +84,15 @@
         .kpi-orange::after { background: var(--accent-orange); }
 
         .kpi-title { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+        .ano-filtro { color: var(--accent-purple); margin-left: 4px; }
         .kpi-value { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-top: 8px; }
         
         .chart-main { grid-column: span 8; }
         .chart-side { grid-column: span 4; }
         .chart-container { position: relative; height: 280px; width: 100%; }
         .card-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary); }
+        .chart-title-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .ano-grafico-grupo { display: flex; flex-wrap: wrap; gap: 6px; }
 
         .table-section { width: 100%; display: none; box-sizing: border-box; }
         .table-section.visible { display: block; }
@@ -206,7 +207,7 @@
     <header>
         <div>
             <h1>Agrovia - "Frota" - Gestão de Custo de Frota</h1>
-            <p>Atualizado em: 03/10/2026 às 02:42 | DRE Gerencial & Auditoria ERP</p>
+            <p>Atualizado em: 03/10/2026 às 17:38 | DRE Gerencial & Auditoria ERP</p>
             <div class="author-signature">Autor do Relatório: Samuel Oliveira Silva</div>
         </div>
         <div class="header-actions">
@@ -215,21 +216,21 @@
                 <button class="toggle-btn" onclick="setViewMode('mobile', this)">📱 Visão Mobile</button>
             </div>
             <button id="btnAuditorToggle" class="table-toggle-btn" onclick="toggleAuditorVersion()">📋 Ver Tabela Analítica</button>
-            <a id="btnQuarentena" class="quarentena-btn" href="saidas/relatorios_auditoria/pendencias_lancamentos.html" target="_blank" rel="noopener" data-relatorio="presente" title="Abre a tela de quarentena de lançamentos (só na máquina local)" hidden>🧪 Quarentena</a>
+            <a id="btnQuarentena" class="quarentena-btn" href="acesso/login.html" target="_blank" rel="noopener" title="Abre a tela de quarentena de lançamentos (exige login de usuário cadastrado)" hidden>🧪 Quarentena</a>
         </div>
     </header>
 
     <div id="defaultDashboardContent">
         <div class="grid-container">
-            <div class="card kpi-card kpi-blue"><span class="kpi-title">Receita Bruta Total</span><div class="kpi-value kpi-receita-bruta">R$ 295.200,30</div></div>
-            <div class="card kpi-card kpi-pink"><span class="kpi-title">Custo Total da Frota</span><div class="kpi-value kpi-custo-total">R$ 78.221,45</div></div>
-            <div class="card kpi-card kpi-purple"><span class="kpi-title">Resultado Líquido</span><div class="kpi-value kpi-resultado-liquido">R$ 216.978,85</div></div>
-            <div class="card kpi-card kpi-green"><span class="kpi-title">Margem Líquida</span><div class="kpi-value kpi-margem-liquida">73.50%</div></div>
-            <div class="card kpi-card kpi-yellow"><span class="kpi-title">CPK (Custo / KM)</span><div class="kpi-value kpi-cpk">Sem dado</div></div>
-            <div class="card kpi-card kpi-orange"><span class="kpi-title">Consumo Médio (Km/L)</span><div class="kpi-value kpi-consumo">Sem dado</div></div>
+            <div class="card kpi-card kpi-blue"><span class="kpi-title">Receita Bruta Total<span class="ano-filtro"></span></span><div class="kpi-value kpi-receita-bruta">R$ 295.200,30</div></div>
+            <div class="card kpi-card kpi-pink"><span class="kpi-title">Custo Total da Frota<span class="ano-filtro"></span></span><div class="kpi-value kpi-custo-total">R$ 78.221,45</div></div>
+            <div class="card kpi-card kpi-purple"><span class="kpi-title">Resultado Líquido<span class="ano-filtro"></span></span><div class="kpi-value kpi-resultado-liquido">R$ 216.978,85</div></div>
+            <div class="card kpi-card kpi-green"><span class="kpi-title">Margem Líquida<span class="ano-filtro"></span></span><div class="kpi-value kpi-margem-liquida">73,50%</div></div>
+            <div class="card kpi-card kpi-yellow"><span class="kpi-title">CPK (Custo / KM)<span class="ano-filtro"></span></span><div class="kpi-value kpi-cpk">Sem dado</div></div>
+            <div class="card kpi-card kpi-orange"><span class="kpi-title">Consumo Médio (Km/L)<span class="ano-filtro"></span></span><div class="kpi-value kpi-consumo">Sem dado</div></div>
 
-            <div class="card chart-main"><div class="card-title">Evolução Mensal: Receitas vs Custos da Frota</div><div class="chart-container"><canvas id="mainEvolutionChart"></canvas></div></div>
-            <div class="card chart-side"><div class="card-title">Composição de Custos (Frota)</div><div class="chart-container"><canvas id="categoryPieChart"></canvas></div></div>
+            <div class="card chart-main"><div class="card-title chart-title-row"><span>Evolução Mensal: Receitas vs Custos da Frota</span><div id="anoGraficoBtns" class="ano-grafico-grupo" role="group" aria-label="Filtrar gráfico por ano"></div></div><div class="chart-container"><canvas id="mainEvolutionChart"></canvas></div></div>
+            <div class="card chart-side"><div class="card-title">Composição de Custos (Frota)<span class="ano-filtro"></span></div><div class="chart-container"><canvas id="categoryPieChart"></canvas></div></div>
         </div>
     </div>
 
@@ -1133,9 +1134,9 @@
         </div>
         <div class="footer-right">
             <i class="fa-solid fa-code-branch" style="color: var(--accent-blue);"></i> 
-            <span>Agrovia DRE Master v8.36 · 2b9d48a</span> 
+            <span>Agrovia DRE Master v8.36 · 7e2aaa7</span> 
             <span style="color: var(--border-color);">•</span> 
-            <span>Atualizado em: 03/10/2026 às 02:42</span>
+            <span>Atualizado em: 03/10/2026 às 17:38</span>
         </div>
     </footer>
 </div>
@@ -1152,25 +1153,12 @@
         setViewMode('mobile', document.querySelectorAll('.view-toggle-btns .toggle-btn')[1]);
     }
 
-    // A tela de quarentena tem dados financeiros e não é publicada: fora da máquina local o botão fica visível mas sem link.
+    // A quarentena é online e exige login (Firebase); aberto do disco (file:) o login não funciona, por isso vai para o site.
     (function prepararBotaoQuarentena() {
         const btn = document.getElementById('btnQuarentena');
         if (!btn) return;
-        const local = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+        if (location.protocol === 'file:') btn.href = 'https://samuelchapbond.github.io/agrovia-dre-frota/acesso/login.html';
         btn.hidden = false;
-        if (!local) {
-            btn.classList.add('indisponivel');
-            btn.removeAttribute('href');
-            btn.setAttribute('aria-disabled', 'true');
-            btn.title = 'A tela de quarentena tem dados financeiros e só abre no PC local';
-            btn.innerHTML = '🧪 Quarentena: só no PC local';
-        } else if (btn.dataset.relatorio !== 'presente') {
-            btn.classList.add('indisponivel');
-            btn.removeAttribute('href');
-            btn.setAttribute('aria-disabled', 'true');
-            btn.title = 'Relatório de quarentena ainda não gerado: correr validar_entrada.bat';
-            btn.innerHTML = '⚠️ Quarentena: sem relatório';
-        }
     })();
 
     function toggleAuditorVersion() {
@@ -1214,7 +1202,7 @@
 
     function marcarAnoAtivo(de, ate) {
         const todos = Array.from(document.getElementById('mesDe').options).map(o => o.value);
-        document.querySelectorAll('.ano-chip').forEach(btn => {
+        document.querySelectorAll('.filter-options .ano-chip').forEach(btn => {
             const meses = todos.filter(m => !btn.dataset.ano || m.startsWith(btn.dataset.ano + '-'));
             btn.classList.toggle('active', de === meses[0] && ate === meses[meses.length - 1]);
         });
@@ -1281,6 +1269,9 @@
     }
 
     // Gráfico de Barras (Evolução Mensal)
+    const MESES_GRAFICO = ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12", "2027-01"];
+    const KM_LITROS_POR_ANO = {};
+    const CUSTOS_CATEGORIA_POR_ANO = {"2026": {"Combustível (Diesel)": 11983.08, "Manutenção": 9846.84, "Pedágio": 2694.36, "Seguros": 42056.19, "IPVA / Lic. / Multas": 6052.68, "Outros Custos": 98.9}, "2027": {"IPVA / Lic. / Multas": 5489.4}};
     const ctxMain = document.getElementById('mainEvolutionChart').getContext('2d');
     const mainEvolutionChart = new Chart(ctxMain, {
         type: 'bar',
@@ -1350,6 +1341,71 @@
             }
         }
     });
+
+    function atualizarCartoesAno(ano, receitas, custos) {
+        const receita = Math.round(receitas.reduce((a, b) => a + b, 0) * 100) / 100;
+        const custo = Math.round(custos.reduce((a, b) => a + b, 0) * 100) / 100;
+        const resultado = Math.round((receita - custo) * 100) / 100;
+        const margem = receita > 0 ? (resultado / receita) * 100 : 0;
+        const definir = (seletor, texto) => { const el = document.querySelector(seletor); if (el) el.innerText = texto; };
+        definir('.kpi-receita-bruta', formatarMoeda(receita));
+        definir('.kpi-custo-total', formatarMoeda(custo));
+        definir('.kpi-resultado-liquido', resultado < 0 ? 'R$ -' + formatarMoeda(Math.abs(resultado)).replace('R$ ', '') : formatarMoeda(resultado));
+        definir('.kpi-margem-liquida', margem.toFixed(2).replace('.', ',') + '%');
+
+        const kmLitros = KM_LITROS_POR_ANO[ano] || {};
+        const km = kmLitros.km || 0;
+        const litros = kmLitros.litros || 0;
+        definir('.kpi-cpk', km > 0 ? formatarMoeda(custo / km) : 'Sem dado');
+        definir('.kpi-consumo', km > 0 && litros > 0 ? (km / litros).toFixed(2).replace('.', ',') + ' Km/L' : 'Sem dado');
+
+        const custosCategoria = CUSTOS_CATEGORIA_POR_ANO[ano] || {};
+        const rosca = categoryPieChart.data;
+        rosca.datasets[0].data = rosca.labels.map(cat => custosCategoria[cat] || 0);
+        categoryPieChart.update();
+
+        document.querySelectorAll('.ano-filtro').forEach(el => { el.innerText = '· ' + ano; });
+    }
+
+    // Filtro de ano do gráfico mensal: abre no ano vigente; sem dados nesse ano, abre no ano mais recente.
+    (function prepararFiltroAnoGrafico() {
+        const box = document.getElementById('anoGraficoBtns');
+        const dados = mainEvolutionChart.data;
+        const completo = {
+            labels: dados.labels.slice(),
+            receita: dados.datasets[0].data.slice(),
+            custo: dados.datasets[1].data.slice()
+        };
+        const anos = [...new Set(MESES_GRAFICO.map(m => m.slice(0, 4)))].sort();
+        if (!box || !anos.length || MESES_GRAFICO.length !== completo.labels.length) return;
+
+        function aplicarAno(ano) {
+            const idx = MESES_GRAFICO.map((m, i) => m.startsWith(ano + '-') ? i : -1).filter(i => i >= 0);
+            dados.labels = idx.map(i => completo.labels[i]);
+            dados.datasets[0].data = idx.map(i => completo.receita[i]);
+            dados.datasets[1].data = idx.map(i => completo.custo[i]);
+            mainEvolutionChart.update();
+            atualizarCartoesAno(ano, dados.datasets[0].data, dados.datasets[1].data);
+            box.querySelectorAll('.ano-chip').forEach(b => {
+                const ativo = b.dataset.ano === ano;
+                b.classList.toggle('active', ativo);
+                b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+            });
+        }
+
+        anos.forEach(ano => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ano-chip';
+            btn.dataset.ano = ano;
+            btn.textContent = ano;
+            btn.addEventListener('click', () => aplicarAno(ano));
+            box.appendChild(btn);
+        });
+
+        const anoVigente = String(new Date().getFullYear());
+        aplicarAno(anos.includes(anoVigente) ? anoVigente : anos[anos.length - 1]);
+    })();
 </script>
 </body>
 </html>
