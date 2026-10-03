@@ -50,9 +50,11 @@ Já feito (commit `9636fc8`): `validar_entrada.py` / `validar_entrada.bat` valid
 
 1. [x] **Botão no painel principal para abrir a tela de quarentena (03/10/2026):**
    - `🧪 Quarentena` no cabeçalho do `template.html`, entre "Ver Tabela Analítica" e PC/Mobile; abre `saidas/relatorios_auditoria/pendencias_lancamentos.html` em nova aba.
-   - Decisão: só aparece ao abrir localmente (`file:`, `localhost`, `127.0.0.1`); no GitHub fica escondido.
-   - O motor marca `data-relatorio="presente|ausente"`; sem relatório, o botão aparece desativado como "⚠️ Quarentena: sem relatório" (correr `validar_entrada.bat`).
-2. [x] **Severidade da placa `[XYZ]`:** decisão do SAMUEL (03/10/2026): **mantém BLOQUEANTE**.
+   - Decisão provisória do SAMUEL (03/10/2026): o botão passa a aparecer também no GitHub (PC e celular), desativado e sem link, como "🧪 Quarentena: só no PC local". A tela continua sem ser publicada (`saidas/` fora do git); só abre ao abrir o painel localmente (`file:`, `localhost`, `127.0.0.1`).
+   - O motor marca `data-relatorio="presente|ausente"`; localmente, sem relatório, o botão aparece desativado como "⚠️ Quarentena: sem relatório" (correr `validar_entrada.bat`).
+   - [ ] **Rever pela segurança:** decidir se o botão fica visível no site público ou volta a ficar escondido, e se algum dia a quarentena terá versão publicável (sem valores, parceiros nem Nro Único). Repositório e site são públicos: nada da tela de pendências pode entrar no `index.html` nem no git.
+2. [x] **Versão do painel automática (03/10/2026):** o rodapé deixou de usar um número fixo. `obter_versao_painel()` em `atualizar_dashboard.py` grava `VERSAO_BASE` + commit git curto (ex.: `v8.36 · 4d18197`), com `+local` quando há alterações não commitadas em `src/` ou `templates/`. A versão base (`VERSAO_BASE`) continua manual, para mudanças grandes.
+3. [x] **Severidade da placa `[XYZ]`:** decisão do SAMUEL (03/10/2026): **mantém BLOQUEANTE**.
    - Critério do validador (`regras_lancamento.py`): placa no campo → OK; campo genérico mas placa no histórico/observação/identificação → AVISO ("Placa só no histórico"); sem placa em lado nenhum → BLOQUEANTE ("Placa genérica ou ausente").
    - Motivo: `[XYZ]` vai continuar a aparecer, porque há custo da frota lançado sem placa na coluna correta. Só o bloqueio obriga a corrigir no Sankhya antes de entrar; o motor (`atualizar_dashboard.py`) conta linha "NÃO INFORMADA" na DRE da `OOM9749`.
    - Evidência (03/10/2026, ficheiros em `dados/banco_de_dados/`): 27 linhas `[XYZ]` (18 em `Financeiro RECEBER - 01 a 08-2026.xls`, 9 em `mes01-2026.xlsx`), quase todas adiantamento/salário do motorista, monitores (REP STORE), camionete particular e viagem no caminhão da CVC.
@@ -60,8 +62,8 @@ Já feito (commit `9636fc8`): `validar_entrada.py` / `validar_entrada.bat` valid
    - Efeito no painel: receita e custo da DRE baixam pelos lançamentos sem placa, que passam a aparecer à parte. Auditoria bate com o painel; veredito APROVADO. (Valores ficam no `log_execucao.txt` local, fora do git.)
    - [x] Achado corrigido (03/10/2026): o motor usava `Data Baixa` como data da receita (a coluna "Data Emissao" não existe e a procura caía em "Data"). Agora usa `Dt. Negociação` (ver item 3 da 4.1).
    - [x] Corrigido (03/10/2026): o gráfico "Evolução Mensal" cortava em agosto e somava meses de anos diferentes (2027-01 caía em janeiro de 2026). Agora mostra todos os meses AAAA-MM do primeiro ao último lançamento (rótulos `Jan/26` … `Jan/27`) e as barras somam os totais dos KPIs.
-   - [ ] Achado: o filtro de meses da tabela vai só de janeiro a setembro e usa só o mês, sem o ano. Custos com data de outubro em diante contam no KPI mas desaparecem da tabela quando o filtro recalcula, e lançamentos de 2027-01 entram no chip "Janeiro".
-3. [x] **`.gitignore`:** `dados/banco_de_dados/`, `dados/entrada_quarentena/`, `saidas/relatorios_auditoria/`, `saidas/backup_relatorios/` inteiros fora do git (commit `1011c00`, 02/10/2026). O repositório é público.
+   - [x] Corrigido (03/10/2026): o filtro de meses da tabela ia só de janeiro a setembro e usava só o mês, sem o ano. Agora o motor grava `data-mes` como AAAA-MM e o filtro passou a botões de ano (`Todos`, `2026`, `2027`) mais um período manual "De / Até" com os meses do mesmo intervalo do gráfico (`Jan/26` … `Jan/27`). Em "Todos", a tabela soma os totais dos KPIs; o lançamento de 2027-01 só entra no ano 2027.
+4. [x] **`.gitignore`:** `dados/banco_de_dados/`, `dados/entrada_quarentena/`, `saidas/relatorios_auditoria/`, `saidas/backup_relatorios/` inteiros fora do git (commit `1011c00`, 02/10/2026). O repositório é público.
 
 ### 4.2 Etapa 2 (Multiveículos) — ponto de partida
 * Hoje o motor só conhece a placa `OOM9749` (`PLACA_FROTA_PRINCIPAL`); lançamentos de outras placas são excluídos como "outros veículos".

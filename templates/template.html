@@ -101,10 +101,14 @@
 
         .filter-container { display: flex; flex-direction: column; gap: 8px; background: rgba(10, 23, 17, 0.9); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; box-sizing: border-box; }
         .filter-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-secondary); font-weight: 600; flex-wrap: wrap; gap: 10px; }
-        .filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
-        .month-chip { display: flex; align-items: center; gap: 6px; background: rgba(46, 204, 113, 0.1); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; font-size: 11px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; }
-        .month-chip:hover { background: rgba(46, 204, 113, 0.2); }
-        .month-chip input { accent-color: var(--accent-purple); cursor: pointer; }
+        .filter-options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+        .ano-grupo, .periodo-grupo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .ano-chip { background: rgba(46, 204, 113, 0.1); border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--text-primary); cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .ano-chip:hover { background: rgba(46, 204, 113, 0.2); }
+        .ano-chip.active { background: var(--accent-purple); border-color: var(--accent-purple); color: var(--bg-color); }
+        .periodo-campo { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+        .periodo-select { background: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 8px; font-size: 11px; font-family: inherit; cursor: pointer; }
+        .periodo-select:focus { outline: 1px solid var(--accent-blue); }
         .filter-actions { font-size: 11px; color: var(--accent-blue); cursor: pointer; text-decoration: underline; font-weight: 600; }
         .filter-actions:hover { color: var(--accent-purple); }
 
@@ -168,8 +172,10 @@
         body.mobile-mode .dre-container { padding: 12px; }
         body.mobile-mode .dre-header-title { font-size: 14px; gap: 10px; padding-bottom: 12px; margin-bottom: 10px; }
         body.mobile-mode .filter-container { padding: 10px; }
-        body.mobile-mode .filter-options { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
-        body.mobile-mode .month-chip { flex: 0 0 auto; padding: 8px 10px; }
+        body.mobile-mode .filter-options { flex-direction: column; align-items: stretch; gap: 10px; }
+        body.mobile-mode .ano-chip { flex: 1 1 0; padding: 8px 10px; }
+        body.mobile-mode .periodo-campo { flex: 1 1 0; }
+        body.mobile-mode .periodo-select { flex: 1; padding: 8px; }
         body.mobile-mode .dre-scroll { max-height: none; overflow: visible; }
 
         body.mobile-mode table.dre-table, body.mobile-mode table.dre-table tbody { display: block; width: 100%; min-width: 0; }
@@ -236,22 +242,11 @@
                 </div>
                 <div class="filter-container">
                     <div class="filter-header">
-                        <span><i class="fa-solid fa-filter" style="color: var(--accent-blue);"></i> Filtrar por Mês (Selecione um ou mais):</span>
-                        <div>
-                            <span class="filter-actions" onclick="selecionarTodosMeses(true)">Marcar Todos</span> | 
-                            <span class="filter-actions" onclick="selecionarTodosMeses(false)">Desmarcar Todos</span>
-                        </div>
+                        <span><i class="fa-solid fa-filter" style="color: var(--accent-blue);"></i> Filtrar Período (ano ou intervalo de meses):</span>
+                        <span class="filter-actions" onclick="selecionarAno('')">Período completo</span>
                     </div>
                     <div class="filter-options">
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="01" checked onchange="filtrarTabelaPorMeses()"> Janeiro</label>
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="02" checked onchange="filtrarTabelaPorMeses()"> Fevereiro</label>
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="03" checked onchange="filtrarTabelaPorMeses()"> Março</label>
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="04" checked onchange="filtrarTabelaPorMeses()"> Abril</label>
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="05" checked onchange="filtrarTabelaPorMeses()"> Maio</label>
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="06" checked onchange="filtrarTabelaPorMeses()"> Junho</label>
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="07" checked onchange="filtrarTabelaPorMeses()"> Julho</label>
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="08" checked onchange="filtrarTabelaPorMeses()"> Agosto</label>
-                        <label class="month-chip"><input type="checkbox" class="mes-check" value="09" checked onchange="filtrarTabelaPorMeses()"> Setembro</label>
+                        <!-- Anos e meses AAAA-MM injetados dinamicamente pelo Python -->
                     </div>
                 </div>
             </div>
@@ -299,13 +294,19 @@
         setViewMode('mobile', document.querySelectorAll('.view-toggle-btns .toggle-btn')[1]);
     }
 
-    // A tela de quarentena tem dados financeiros e não é publicada: o botão só existe fora do GitHub.
+    // A tela de quarentena tem dados financeiros e não é publicada: fora da máquina local o botão fica visível mas sem link.
     (function prepararBotaoQuarentena() {
         const btn = document.getElementById('btnQuarentena');
+        if (!btn) return;
         const local = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
-        if (!btn || !local) return;
         btn.hidden = false;
-        if (btn.dataset.relatorio !== 'presente') {
+        if (!local) {
+            btn.classList.add('indisponivel');
+            btn.removeAttribute('href');
+            btn.setAttribute('aria-disabled', 'true');
+            btn.title = 'A tela de quarentena tem dados financeiros e só abre no PC local';
+            btn.innerHTML = '🧪 Quarentena: só no PC local';
+        } else if (btn.dataset.relatorio !== 'presente') {
             btn.classList.add('indisponivel');
             btn.removeAttribute('href');
             btn.setAttribute('aria-disabled', 'true');
@@ -342,9 +343,23 @@
         });
     }
 
-    function selecionarTodosMeses(status) {
-        document.querySelectorAll('.mes-check').forEach(cb => cb.checked = status);
+    function selecionarAno(ano) {
+        const selDe = document.getElementById('mesDe');
+        const selAte = document.getElementById('mesAte');
+        if (!selDe || !selAte) return;
+        const meses = Array.from(selDe.options).map(o => o.value).filter(m => !ano || m.startsWith(ano + '-'));
+        if (!meses.length) return;
+        selDe.value = meses[0];
+        selAte.value = meses[meses.length - 1];
         filtrarTabelaPorMeses();
+    }
+
+    function marcarAnoAtivo(de, ate) {
+        const todos = Array.from(document.getElementById('mesDe').options).map(o => o.value);
+        document.querySelectorAll('.ano-chip').forEach(btn => {
+            const meses = todos.filter(m => !btn.dataset.ano || m.startsWith(btn.dataset.ano + '-'));
+            btn.classList.toggle('active', de === meses[0] && ate === meses[meses.length - 1]);
+        });
     }
 
     function formatarMoeda(valor) {
@@ -352,8 +367,13 @@
     }
 
     function filtrarTabelaPorMeses() {
-        const checkboxesMarcados = document.querySelectorAll('.mes-check:checked');
-        const mesesPermitidos = Array.from(checkboxesMarcados).map(cb => cb.value);
+        const selDe = document.getElementById('mesDe');
+        const selAte = document.getElementById('mesAte');
+        if (!selDe || !selAte) return;
+        if (selDe.value > selAte.value) [selDe.value, selAte.value] = [selAte.value, selDe.value];
+        const de = selDe.value;
+        const ate = selAte.value;
+        marcarAnoAtivo(de, ate);
         const categorias = ['detail-frete', 'detail-diesel', 'detail-manut', 'detail-pedagio', 'detail-seguros', 'detail-encargos', 'detail-outros'];
         let totalReceitaFiltrada = 0;
         let totalCustosFiltrado = 0;
@@ -364,7 +384,7 @@
             linhas.forEach(linha => {
                 const mes = linha.getAttribute('data-mes');
                 const valor = parseFloat(linha.getAttribute('data-valor')) || 0;
-                if (mesesPermitidos.includes(mes)) {
+                if (!mes || (mes >= de && mes <= ate)) {
                     linha.style.display = '';
                     somaCategoria += valor;
                 } else {

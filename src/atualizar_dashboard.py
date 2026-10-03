@@ -6,19 +6,36 @@ import os
 import json
 import sys
 import re
+import subprocess
 
 from fontes_dados import (
     CAMINHO_INDEX,
     CAMINHO_TEMPLATE,
     PASTA_BACKUP,
     PASTA_DADOS,
+    PASTA_PROJETO,
     PASTA_RELATORIOS,
     escrever_inventario,
     listar_ficheiros_abastecimento,
 )
 from regras_lancamento import PLACA_FROTA_PRINCIPAL, extrair_placa_do_texto, identificar_placa
 
-VERSAO_ATUAL = "v8.36-RobustAuditEngine"
+VERSAO_BASE = "v8.36"
+
+def obter_versao_painel():
+    """Versão base + commit git atual; '+local' quando src/ ou templates/ têm alterações não commitadas."""
+    def git(*args):
+        return subprocess.run(
+            ["git", *args], cwd=PASTA_PROJETO, capture_output=True, text=True, timeout=15, check=True
+        ).stdout.strip()
+    try:
+        commit = git("rev-parse", "--short", "HEAD")
+        alterado = bool(git("status", "--porcelain", "--", "src", "templates"))
+    except Exception:
+        return VERSAO_BASE
+    return f"{VERSAO_BASE} · {commit}{'+local' if alterado else ''}"
+
+VERSAO_ATUAL = obter_versao_painel()
 
 def configurar_stdout_utf8() -> None:
     """Evita UnicodeEncodeError no terminal Windows (cp1252) com emoji/acentos."""
@@ -347,7 +364,7 @@ def main():
             # Sem placa = BLOQUEANTE na quarentena: fica fora da DRE até corrigir no Sankhya
             if not placa:
                 lancamentos_sem_placa.append({
-                    'data': dt_parsed.strftime('%d/%m/%Y'), 'mes': f"{int(dt_parsed.month):02d}", 'valor': val,
+                    'data': dt_parsed.strftime('%d/%m/%Y'), 'ano_mes': dt_parsed.strftime('%Y-%m'), 'valor': val,
                     'nr_unico': nr_u, 'parceiro': parceiro_val, 'historico': hist or nat,
                 })
                 continue
@@ -358,7 +375,6 @@ def main():
 
             dados_filtrados.append({
                 'data_str': dt_parsed.strftime('%d/%m/%Y'),
-                'mes': int(dt_parsed.month),
                 'ano_mes': dt_parsed.strftime('%Y-%m'),
                 'valor': val,
                 'natureza': nat,
@@ -404,7 +420,7 @@ def main():
         lista_detalhes_receitas = []
         for _, row in df_receitas.iterrows():
             lista_detalhes_receitas.append({
-                'data': row['data_str'], 'mes': f"{row['mes']:02d}", 'parceiro': row['parceiro'], 'natureza': row['natureza'], 'valor': row['valor'], 'nr_unico': row['nr_unico'], 'placa': row['placa']
+                'data': row['data_str'], 'ano_mes': row['ano_mes'], 'parceiro': row['parceiro'], 'natureza': row['natureza'], 'valor': row['valor'], 'nr_unico': row['nr_unico'], 'placa': row['placa']
             })
 
         despesas_por_cat = {
@@ -421,7 +437,7 @@ def main():
             cat_nome, cat_class, badge_sub = classificar_categoria_despesa(row['natureza'], row['historico'])
             despesas_por_cat[cat_nome]['total'] += val
             despesas_por_cat[cat_nome]['linhas'].append({
-                'data': row['data_str'], 'mes': f"{row['mes']:02d}", 'parceiro': row['parceiro'], 'natureza': row['natureza'], 'valor': val, 'nr_unico': row['nr_unico'], 'placa': row['placa']
+                'data': row['data_str'], 'ano_mes': row['ano_mes'], 'parceiro': row['parceiro'], 'natureza': row['natureza'], 'valor': val, 'nr_unico': row['nr_unico'], 'placa': row['placa']
             })
 
         km_rodado, _, litros_consumo = apurar_km_litros(PLACA_FROTA_PRINCIPAL)
@@ -479,6 +495,30 @@ def main():
     html_final = re.sub(r'label:\s*\'Receita Bruta\',\s*data:\s*\[[^\]]*\]', f"label: 'Receita Bruta', data: {str_rec_mes}", html_final)
     html_final = re.sub(r'label:\s*\'Custo Total Frota\',\s*data:\s*\[[^\]]*\]', f"label: 'Custo Total Frota', data: {str_desp_mes}", html_final)
 
+    anos_filtro = sorted({ano_mes[:4] for ano_mes in meses_grafico})
+    botoes_ano = '<button type="button" class="ano-chip active" data-ano="" onclick="selecionarAno(\'\')">Todos</button>' + "".join(
+        f'<button type="button" class="ano-chip" data-ano="{ano}" onclick="selecionarAno(\'{ano}\')">{ano}</button>'
+        for ano in anos_filtro
+    )
+
+    def opcoes_meses(selecionado):
+        return "".join(
+            f'<option value="{ano_mes}"{" selected" if ano_mes == selecionado else ""}>{rotulo}</option>'
+            for ano_mes, rotulo in zip(meses_grafico, labels_grafico)
+        )
+
+    html_filtro_periodo = f"""
+                        <div class="ano-grupo">{botoes_ano}</div>
+                        <div class="periodo-grupo">
+                            <label class="periodo-campo">De <select id="mesDe" class="periodo-select" onchange="filtrarTabelaPorMeses()">{opcoes_meses(meses_grafico[0])}</select></label>
+                            <label class="periodo-campo">Até <select id="mesAte" class="periodo-select" onchange="filtrarTabelaPorMeses()">{opcoes_meses(meses_grafico[-1])}</select></label>
+                        </div>"""
+    html_final = re.sub(
+        r'(<div class="filter-options">).*?(\n\s*</div>\s*</div>\s*</div>\s*<div class="dre-scroll">)',
+        lambda m: m.group(1) + html_filtro_periodo + m.group(2),
+        html_final, count=1, flags=re.DOTALL,
+    )
+
     cat_ordenadas = sorted(despesas_por_cat.items(), key=lambda x: x[1]['total'], reverse=True)
     cat_nomes = [item[0] for item in cat_ordenadas]
     lista_rosca = [item[1]['total'] for item in cat_ordenadas]
@@ -509,7 +549,7 @@ def main():
     if lista_detalhes_receitas:
         for item in lista_detalhes_receitas:
             html_linhas_tabela += f"""
-                            <tr class="row-detail detail-frete" data-mes="{item['mes']}" data-valor="{item['valor']}">
+                            <tr class="row-detail detail-frete" data-mes="{item['ano_mes']}" data-valor="{item['valor']}">
                                 <td style="padding-left: 50px;">
                                     <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>{item['data']}</strong> • N° {item['nr_unico']} • Placa: <strong>{item['placa']}</strong> • <strong>{item['parceiro']}</strong>
                                 </td>
@@ -518,7 +558,7 @@ def main():
                             </tr>"""
     else:
         html_linhas_tabela += f"""
-                            <tr class="row-detail detail-frete" data-mes="01" data-valor="0">
+                            <tr class="row-detail detail-frete" data-valor="0">
                                 <td style="padding-left: 50px;" colspan="3">Nenhuma receita registada no período.</td>
                             </tr>"""
 
@@ -572,7 +612,7 @@ def main():
         if dados_cat['linhas']:
             for l in dados_cat['linhas']:
                 html_linhas_tabela += f"""
-                            <tr class="row-detail {class_detalhe}" data-mes="{l['mes']}" data-valor="{l['valor']}">
+                            <tr class="row-detail {class_detalhe}" data-mes="{l['ano_mes']}" data-valor="{l['valor']}">
                                 <td style="padding-left: 50px;">
                                     <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>{l['data']}</strong> • N° {l['nr_unico']} • Placa: <strong>{l['placa']}</strong> • <strong>{l['parceiro']}</strong>
                                 </td>
@@ -581,7 +621,7 @@ def main():
                             </tr>"""
         else:
             html_linhas_tabela += f"""
-                            <tr class="row-detail {class_detalhe}" data-mes="01" data-valor="0">
+                            <tr class="row-detail {class_detalhe}" data-valor="0">
                                 <td style="padding-left: 50px;" colspan="3">Nenhum registo nesta categoria.</td>
                             </tr>"""
 
@@ -604,7 +644,7 @@ def main():
         for l in lancamentos_sem_placa:
             cor = 'var(--accent-blue)' if l['valor'] > 0 else '#f87171'
             html_linhas_tabela += f"""
-                            <tr class="row-detail detail-sem-placa" data-mes="{l['mes']}">
+                            <tr class="row-detail detail-sem-placa" data-mes="{l['ano_mes']}">
                                 <td style="padding-left: 50px;">
                                     <i class="fa-regular fa-calendar-days" style="color: var(--accent-purple);"></i> <strong>{l['data']}</strong> • N° {l['nr_unico']} • Placa: <strong>NÃO INFORMADA</strong> • <strong>{html.escape(l['parceiro'])}</strong> • {html.escape(l['historico'][:60])}
                                 </td>
