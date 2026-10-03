@@ -59,7 +59,8 @@ Já feito (commit `9636fc8`): `validar_entrada.py` / `validar_entrada.bat` valid
    - [x] Corrigido (03/10/2026): `identificar_placa()` em `regras_lancamento.py` é o critério único da quarentena, do motor e da auditoria. Linha sem placa sai da DRE e aparece à parte no painel ("Lançamentos sem placa - fora da DRE"). Variantes `OOM 9749`, `OOM-9749` e Mercosul `OOM9H49` passam a contar como `OOM9749`. O painel mostra "(Validada)" quando a placa vem do campo e "(via histórico)" quando vem do texto.
    - Efeito no painel: receita e custo da DRE baixam pelos lançamentos sem placa, que passam a aparecer à parte. Auditoria bate com o painel; veredito APROVADO. (Valores ficam no `log_execucao.txt` local, fora do git.)
    - [x] Achado corrigido (03/10/2026): o motor usava `Data Baixa` como data da receita (a coluna "Data Emissao" não existe e a procura caía em "Data"). Agora usa `Dt. Negociação` (ver item 3 da 4.1).
-   - [ ] Achado: o filtro de meses da tabela vai só de janeiro a setembro. Custos com data de outubro em diante contam no KPI mas desaparecem da tabela quando o filtro recalcula.
+   - [x] Corrigido (03/10/2026): o gráfico "Evolução Mensal" cortava em agosto e somava meses de anos diferentes (2027-01 caía em janeiro de 2026). Agora mostra todos os meses AAAA-MM do primeiro ao último lançamento (rótulos `Jan/26` … `Jan/27`) e as barras somam os totais dos KPIs.
+   - [ ] Achado: o filtro de meses da tabela vai só de janeiro a setembro e usa só o mês, sem o ano. Custos com data de outubro em diante contam no KPI mas desaparecem da tabela quando o filtro recalcula, e lançamentos de 2027-01 entram no chip "Janeiro".
 3. [x] **`.gitignore`:** `dados/banco_de_dados/`, `dados/entrada_quarentena/`, `saidas/relatorios_auditoria/`, `saidas/backup_relatorios/` inteiros fora do git (commit `1011c00`, 02/10/2026). O repositório é público.
 
 ### 4.2 Etapa 2 (Multiveículos) — ponto de partida

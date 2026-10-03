@@ -359,6 +359,7 @@ def main():
             dados_filtrados.append({
                 'data_str': dt_parsed.strftime('%d/%m/%Y'),
                 'mes': int(dt_parsed.month),
+                'ano_mes': dt_parsed.strftime('%Y-%m'),
                 'valor': val,
                 'natureza': nat,
                 'historico': hist,
@@ -385,19 +386,17 @@ def main():
         df_receitas = df_processado[df_processado['valor'] > 0]
         df_despesas = df_processado[df_processado['valor'] < 0]
 
-        receitas_por_mes = [0.0] * 12
-        despesas_por_mes = [0.0] * 12
-
-        for _, row in df_receitas.iterrows():
-            m = row['mes']
-            if 1 <= m <= 12:
-                receitas_por_mes[m - 1] += float(row['valor'])
-
-        for _, row in df_despesas.iterrows():
-            m = row['mes']
-            val = abs(float(row['valor']))
-            if 1 <= m <= 12:
-                despesas_por_mes[m - 1] += val
+        # Gráfico mensal: todos os AAAA-MM do primeiro ao último lançamento, incluindo meses sem movimento.
+        periodos_grafico = pd.period_range(
+            pd.Period(df_processado['ano_mes'].min(), freq='M'),
+            pd.Period(df_processado['ano_mes'].max(), freq='M'),
+            freq='M',
+        )
+        meses_grafico = [p.strftime('%Y-%m') for p in periodos_grafico]
+        nomes_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+        labels_grafico = [f"{nomes_meses[p.month - 1]}/{p.year % 100:02d}" for p in periodos_grafico]
+        receitas_por_mes = df_receitas.groupby('ano_mes')['valor'].sum().reindex(meses_grafico, fill_value=0.0).round(2).tolist()
+        despesas_por_mes = df_despesas.groupby('ano_mes')['valor'].sum().abs().reindex(meses_grafico, fill_value=0.0).round(2).tolist()
 
         total_receita = float(df_receitas['valor'].sum())
         total_despesa = float(df_despesas['valor'].abs().sum())
@@ -472,11 +471,13 @@ def main():
     html_final = re.sub(r'class="kpi-value kpi-cpk">[^<]+<', f'class="kpi-value kpi-cpk">{cpk_fmt}<', html_final)
     html_final = re.sub(r'class="kpi-value kpi-consumo">[^<]+<', f'class="kpi-value kpi-consumo">{consumo_fmt}<', html_final)
 
-    str_rec_mes = json.dumps(receitas_por_mes[:8])
-    str_desp_mes = json.dumps(despesas_por_mes[:8])
+    str_rec_mes = json.dumps(receitas_por_mes)
+    str_desp_mes = json.dumps(despesas_por_mes)
+    str_labels_mes = json.dumps(labels_grafico)
 
-    html_final = re.sub(r'label:\s*\'Receita Bruta\',\s*data:\s*\[[^\]]+\]', f"label: 'Receita Bruta', data: {str_rec_mes}", html_final)
-    html_final = re.sub(r'label:\s*\'Custo Total Frota\',\s*data:\s*\[[^\]]+\]', f"label: 'Custo Total Frota', data: {str_desp_mes}", html_final)
+    html_final = re.sub(r'(new Chart\(ctxMain,[\s\S]*?labels:\s*)\[[^\]]*\]', lambda m: m.group(1) + str_labels_mes, html_final, count=1)
+    html_final = re.sub(r'label:\s*\'Receita Bruta\',\s*data:\s*\[[^\]]*\]', f"label: 'Receita Bruta', data: {str_rec_mes}", html_final)
+    html_final = re.sub(r'label:\s*\'Custo Total Frota\',\s*data:\s*\[[^\]]*\]', f"label: 'Custo Total Frota', data: {str_desp_mes}", html_final)
 
     cat_ordenadas = sorted(despesas_por_cat.items(), key=lambda x: x[1]['total'], reverse=True)
     cat_nomes = [item[0] for item in cat_ordenadas]
