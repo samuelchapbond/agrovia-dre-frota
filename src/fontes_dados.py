@@ -19,6 +19,7 @@ CAMINHO_INVENTARIO = os.path.join(PASTA_RELATORIOS, "inventario_fontes.txt")
 # Segredos locais (fora do git): chave de serviço do Firebase usada para enviar a quarentena para a nuvem.
 PASTA_CONFIG_LOCAL = os.path.join(PASTA_PROJETO, "config_local")
 CAMINHO_CHAVE_FIREBASE = os.path.join(PASTA_CONFIG_LOCAL, "firebase_servico.json")
+CAMINHO_CONTA_TESTE_AI = os.path.join(PASTA_CONFIG_LOCAL, "teste_ai.json")
 URL_LOGIN_QUARENTENA = "https://samuelchapbond.github.io/agrovia-dre-frota/acesso/login.html"
 
 
